@@ -1,0 +1,41 @@
+{
+    "classes": [
+        {
+            "title": "cloud",
+            "shape": "bitmap",
+            "color": "#F8E71C",
+            "geometry_config": {},
+            "id": 6462264,
+            "hotkey": ""
+        }
+    ],
+    "tags": [
+        {
+            "name": "band",
+            "value_type": "any_string",
+            "color": "#870F8A",
+            "id": 21144,
+            "hotkey": "",
+            "applicable_type": "all",
+            "classes": []
+        },
+        {
+            "name": "image_id",
+            "value_type": "any_string",
+            "color": "#3D0F8A",
+            "id": 21143,
+            "hotkey": "",
+            "applicable_type": "all",
+            "classes": []
+        }
+    ],
+    "projectType": "images",
+    "projectSettings": {
+        "multiView": {
+            "enabled": true,
+            "tagName": "image_id",
+            "tagId": 21143,
+            "isSynced": false
+        }
+    }
+}
