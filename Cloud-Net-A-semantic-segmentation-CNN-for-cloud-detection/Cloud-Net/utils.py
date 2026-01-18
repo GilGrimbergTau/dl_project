@@ -42,13 +42,11 @@ def get_input_image_names(list_names, directory_name, if_train=True):
             fl_img = []
             nmask = 'gt_' + filenames
             fl_msk = directory_name + '/train_gt/' + '{}.TIF'.format(nmask)
-            list_msk.append(fl_msk)
 
         else:
             dir_type_name = "test"
             fl_img = []
             fl_id = '{}.TIF'.format(filenames)
-            list_test_ids.append(fl_id)
 
         fl_img_red = directory_name + '/' + dir_type_name + '_red/' + '{}.TIF'.format(nred)
         fl_img_green = directory_name + '/' + dir_type_name + '_green/' + '{}.TIF'.format(ngreen)
@@ -61,6 +59,12 @@ def get_input_image_names(list_names, directory_name, if_train=True):
 
         if os.path.isfile(fl_img[0]) and os.path.isfile(fl_img[1]) and os.path.isfile(fl_img[2]) and os.path.isfile(
                 fl_img[3]):
+            if if_train:
+                list_msk.append(fl_msk)
+                list_img.append(fl_img)
+            else:
+                list_test_ids.append(fl_id)
+
             list_img.append(fl_img)
 
     if if_train:

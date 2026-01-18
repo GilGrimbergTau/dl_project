@@ -141,7 +141,7 @@ def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_p
         # print('counter = ', counter)
         image_list = np.array(image_list)
 
-        yield (image_list)
+        yield (image_list,)
 
         if counter == number_of_batches:
             counter = 0

@@ -24,7 +24,7 @@ def prediction():
 
     imgs_mask_test = model.predict(
         mybatch_generator_prediction(test_img, in_rows, in_cols, batch_sz, max_bit),
-        steps=np.ceil(len(test_img) / batch_sz))
+        steps=np.int32(np.ceil(len(test_img) / batch_sz)))
 
     print("Saving predicted cloud masks on disk... \n")
 
@@ -34,10 +34,10 @@ def prediction():
 
     for image, image_id in zip(imgs_mask_test, test_ids):
         image = (image[:, :, 0]).astype(np.float32)
-        tiff.imsave(os.path.join(PRED_FOLDER, pred_dir, str(image_id)), image)
+        tiff.imwrite(os.path.join(PRED_FOLDER, pred_dir, str(image_id)), image)
 
 
-GLOBAL_PATH = r'../cloud_38_dataset'
+GLOBAL_PATH = '/opt/DL_project/cloud38_dataset/'
 TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
 TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
 PRED_FOLDER = os.path.join(GLOBAL_PATH, 'Predictions')
@@ -47,10 +47,10 @@ in_rows = 384
 in_cols = 384
 num_of_channels = 4
 num_of_classes = 1
-batch_sz = 10
+batch_sz = 1
 max_bit = 65535  # maximum gray level in landsat 8 images
 experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
-weights_path = os.path.join("../..", experiment_name + '.h5')
+weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
 
 
 # getting input images names
