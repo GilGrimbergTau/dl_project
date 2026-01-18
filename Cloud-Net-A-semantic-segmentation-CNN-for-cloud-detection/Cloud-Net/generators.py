@@ -3,7 +3,7 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
-
+from utils import match_to_cdf, get_cloud38_cdf
 import cv2
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
@@ -133,7 +133,8 @@ def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_p
         end = batch_size * (counter + 1)
         batch_files = tstfiles[beg:end]
         image_list = []
-
+        cloud38_cdf = get_cloud38_cdf()
+        
         for file in batch_files:
 
             image_red = cv2.imread(file[0],cv2.IMREAD_UNCHANGED)
@@ -147,7 +148,9 @@ def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_p
 
 
             # image /= max_possible_input_value
-            image = percentile_stretch_16bit(image)
+            #image = percentile_stretch_16bit(image)
+            
+            image = match_to_cdf(image, cloud38_cdf)
             image_list.append(image)
 
         counter += 1
