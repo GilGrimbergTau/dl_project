@@ -8,7 +8,8 @@ import cloud_net_model
 from losses import jacc_coef
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
-from generators import mybatch_generator_train, mybatch_generator_validation
+# from generators import mybatch_generator_train, mybatch_generator_validation
+from generators import mybatch_generator, GEN_TRAIN, GEN_VAL, GEN_TEST
 import pandas as pd
 from utils import get_input_image_names
 
@@ -18,7 +19,7 @@ def train():
                                        input_cols=in_cols,
                                        num_of_channels=num_of_channels,
                                        num_of_classes=num_of_classes)
-    model.compile(optimizer=Adam(lr=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+    model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
     # model.summary()
 
     model_checkpoint = ModelCheckpoint(weights_path, monitor='val_loss', save_best_only=True)
@@ -41,17 +42,17 @@ def train():
     print("Learning rate: ", starting_learning_rate)
     print("Batch size: ", batch_sz, "\n")
 
-    model.fit_generator(
-        generator=mybatch_generator_train(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz, max_bit),
-        steps_per_epoch=np.ceil(len(train_img_split) / batch_sz), epochs=max_num_epochs, verbose=1,
-        validation_data=mybatch_generator_validation(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz, max_bit),
-        validation_steps=np.ceil(len(val_img_split) / batch_sz),
+    model.fit(
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
+        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / batch_sz)), epochs=max_num_epochs, verbose=1,
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_VAL),
+        validation_steps=np.int32(np.ceil(len(val_img_split) / batch_sz)),
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(end_learning_rate), csv_logger])
 
 
-GLOBAL_PATH = 'path to 38-cloud dataset'
-TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
-TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
+GLOBAL_PATH = r"/opt/DL_project/"
+# TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
+# TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
 
 in_rows = 192
 in_cols = 192
@@ -59,19 +60,20 @@ num_of_channels = 4
 num_of_classes = 1
 starting_learning_rate = 1e-4
 end_learning_rate = 1e-8
-max_num_epochs = 2000  # just a huge number. The actual training should not be limited by this value
+max_num_epochs = 5  # just a huge number. The actual training should not be limited by this value
 val_ratio = 0.2
 patience = 15
 decay_factor = 0.7
-batch_sz = 12
+batch_sz = 16
 max_bit = 65535  # maximum gray level in landsat 8 images
 experiment_name = "Cloud-Net"
-weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
+weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/first_time_training.h5")
 train_resume = False
 
 # getting input images names
-train_patches_csv_name = 'training_patches_38-cloud.csv'
-df_train_img = pd.read_csv(os.path.join(TRAIN_FOLDER, train_patches_csv_name))
-train_img, train_msk = get_input_image_names(df_train_img, TRAIN_FOLDER, if_train=True)
+# train_patches_csv_name = 'training_patches_38-cloud.csv'
+# df_train_img = pd.read_csv(os.path.join(TRAIN_FOLDER, train_patches_csv_name))
+dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset')
+train_img, train_msk = get_input_image_names(dataset_folder, if_train=True)
 
 train()

@@ -3,7 +3,8 @@ from __future__ import print_function
 import os
 import numpy as np
 import cloud_net_model
-from generators import mybatch_generator_prediction
+# from generators import mybatch_generator_prediction
+from generators import mybatch_generator, GEN_TEST
 import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
@@ -24,8 +25,8 @@ def prediction():
     print("Batch size = ", batch_sz)
 
     imgs_mask_test = model.predict(
-        mybatch_generator_prediction(test_img, in_rows, in_cols, batch_sz, max_bit),
-        steps=np.int32(np.ceil(len(test_img) / batch_sz)))
+        mybatch_generator(list(zip(test_imgs, test_masks)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_TEST, shuffle=False),
+        steps=np.int32(np.ceil(len(test_imgs) / batch_sz)))
 
     print("Saving predicted cloud masks on disk... \n")
 
@@ -33,10 +34,10 @@ def prediction():
     if not os.path.exists(os.path.join(PRED_FOLDER, pred_dir)):
         os.mkdir(os.path.join(PRED_FOLDER, pred_dir))
 
-    for image, image_id in zip(imgs_mask_test, test_ids):
-        image = (image[:, :, 0]).astype(np.float32)
-        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, str(image_id)), image)
-        print(f"predicted mask saved to: {os.path.join(PRED_FOLDER, pred_dir, str(image_id))}")
+    for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
+        pred_image = (pred_image[:, :, 0]).astype(np.float32)
+        image_name = os.path.basename(gt_mask).split(".")[0]
+        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, image_name + "_pred"), pred_image)
 
 GLOBAL_PATH = '/opt/DL_project/cloud38_dataset/'
 TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
@@ -58,6 +59,6 @@ weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
 test_patches_csv_name = 'test_patches_38-cloud.csv'
 # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
 df_test_img = ["/opt/DL_project/raw_dataset/00018900.tif"]
-test_img, test_ids = get_input_image_names(df_test_img, TEST_FOLDER, if_train=False)
+test_imgs, test_masks = get_input_image_names(df_test_img, TEST_FOLDER, if_train=False)
 
 prediction()
