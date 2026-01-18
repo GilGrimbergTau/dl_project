@@ -31,11 +31,7 @@ def get_input_image_names(list_names, directory_name, if_train=True):
     list_msk = []
     list_test_ids = []
 
-    for filenames in tqdm(list_names['name'], miniters=1000):
-        nred = 'red_' + filenames
-        nblue = 'blue_' + filenames
-        ngreen = 'green_' + filenames
-        nnir = 'nir_' + filenames
+    for filenames in tqdm(list_names, miniters=1000):
 
         if if_train:
             dir_type_name = "train"
@@ -46,12 +42,12 @@ def get_input_image_names(list_names, directory_name, if_train=True):
         else:
             dir_type_name = "test"
             fl_img = []
-            fl_id = '{}.TIF'.format(filenames)
+            fl_id = os.path.basename(filenames)
 
-        fl_img_red = directory_name + '/' + dir_type_name + '_red/' + '{}.TIF'.format(nred)
-        fl_img_green = directory_name + '/' + dir_type_name + '_green/' + '{}.TIF'.format(ngreen)
-        fl_img_blue = directory_name + '/' + dir_type_name + '_blue/' + '{}.TIF'.format(nblue)
-        fl_img_nir = directory_name + '/' + dir_type_name + '_nir/' + '{}.TIF'.format(nnir)
+        fl_img_red = filenames
+        fl_img_green = filenames
+        fl_img_blue = filenames
+        fl_img_nir = filenames
         fl_img.append(fl_img_red)
         fl_img.append(fl_img_green)
         fl_img.append(fl_img_blue)

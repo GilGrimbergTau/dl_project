@@ -8,6 +8,7 @@ import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
 
+import cv2
 
 def prediction():
     model = cloud_net_model.model_arch(input_rows=in_rows,
@@ -28,14 +29,14 @@ def prediction():
 
     print("Saving predicted cloud masks on disk... \n")
 
-    pred_dir = experiment_name + '_train_192_test_384'
+    pred_dir = "raw_dataset"
     if not os.path.exists(os.path.join(PRED_FOLDER, pred_dir)):
         os.mkdir(os.path.join(PRED_FOLDER, pred_dir))
 
     for image, image_id in zip(imgs_mask_test, test_ids):
         image = (image[:, :, 0]).astype(np.float32)
-        tiff.imwrite(os.path.join(PRED_FOLDER, pred_dir, str(image_id)), image)
-
+        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, str(image_id)), image)
+        print(f"predicted mask saved to: {os.path.join(PRED_FOLDER, pred_dir, str(image_id))}")
 
 GLOBAL_PATH = '/opt/DL_project/cloud38_dataset/'
 TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
@@ -55,7 +56,8 @@ weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
 
 # getting input images names
 test_patches_csv_name = 'test_patches_38-cloud.csv'
-df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
+# df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
+df_test_img = ["/opt/DL_project/raw_dataset/00018900.tif"]
 test_img, test_ids = get_input_image_names(df_test_img, TEST_FOLDER, if_train=False)
 
 prediction()

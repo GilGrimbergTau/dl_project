@@ -4,6 +4,7 @@ from skimage.transform import resize
 import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
 
+import cv2
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
 """
@@ -111,6 +112,17 @@ def mybatch_generator_validation(zip_list, img_rows, img_cols, batch_size, shuff
             counter = 0
 
 
+def percentile_stretch_16bit(img, p_low=2, p_high=98):
+    img = img.astype(np.float32)
+
+    lo, hi = np.percentile(img, (p_low, p_high))
+    img = np.clip(img, lo, hi)
+
+    stretched = (img - lo) / (hi - lo)
+    stretched = stretched * 65535.0
+
+    return stretched.astype(np.uint16)
+
 def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_possible_input_value=65536):
     number_of_batches = np.ceil(len(tstfiles) / batch_size)
     counter = 0
@@ -124,17 +136,18 @@ def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_p
 
         for file in batch_files:
 
-            image_red = imread(file[0])
-            image_green = imread(file[1])
-            image_blue = imread(file[2])
-            image_nir = imread(file[3])
+            image_red = cv2.imread(file[0],cv2.IMREAD_UNCHANGED)
+            image_green = cv2.imread(file[1],cv2.IMREAD_UNCHANGED)
+            image_blue = cv2.imread(file[2],cv2.IMREAD_UNCHANGED)
+            image_nir = cv2.imread(file[3],cv2.IMREAD_UNCHANGED)
 
             image = np.stack((image_red, image_green, image_blue, image_nir), axis=-1)
 
             image = resize (image, ( img_rows, img_cols), preserve_range=True, mode='symmetric')
 
 
-            image /= max_possible_input_value
+            # image /= max_possible_input_value
+            image = percentile_stretch_16bit(image)
             image_list.append(image)
 
         counter += 1
