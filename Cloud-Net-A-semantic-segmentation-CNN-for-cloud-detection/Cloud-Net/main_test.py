@@ -30,14 +30,14 @@ def prediction():
 
     print("Saving predicted cloud masks on disk... \n")
 
-    pred_dir = "raw_dataset"
+    pred_dir = "sorted_dataset"
     if not os.path.exists(os.path.join(PRED_FOLDER, pred_dir)):
         os.mkdir(os.path.join(PRED_FOLDER, pred_dir))
 
     for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
         pred_image = (pred_image[:, :, 0]).astype(np.float32)
         image_name = os.path.basename(gt_mask).split(".")[0]
-        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, image_name + "_pred"), pred_image)
+        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, image_name + "_pred.tif"), pred_image)
 
 GLOBAL_PATH = '/opt/DL_project/cloud38_dataset/'
 TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
@@ -49,16 +49,17 @@ in_rows = 384
 in_cols = 384
 num_of_channels = 4
 num_of_classes = 1
-batch_sz = 1
+batch_sz = 16
 max_bit = 65535  # maximum gray level in landsat 8 images
-experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
+# experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
+experiment_name = "first_time_training"
 weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
 
 
 # getting input images names
 test_patches_csv_name = 'test_patches_38-cloud.csv'
 # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
-df_test_img = ["/opt/DL_project/raw_dataset/00018900.tif"]
-test_imgs, test_masks = get_input_image_names(df_test_img, TEST_FOLDER, if_train=False)
+dataset_folder = r"/opt/DL_project/sorted_dataset/"
+test_imgs, test_masks = get_input_image_names(dataset_folder, if_train=False)
 
 prediction()
