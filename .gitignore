@@ -5,3 +5,4 @@ Cloud-Net_trained_on_38-Cloud_training_patches.h5
 /lib/
 *.pyc
 /.vscode/
+*.log
