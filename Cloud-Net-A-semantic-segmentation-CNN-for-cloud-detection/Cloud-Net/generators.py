@@ -13,7 +13,7 @@ GEN_TRAIN = "gen_train"
 GEN_VAL = "gen_val"
 GEN_TEST = "gen_test"
 
-def mybatch_generator(zip_list, img_rows, img_cols, batch_size, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=65536):
+def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=65536):
     number_of_batches = np.ceil(len(zip_list) / batch_size)
     if gen_type != GEN_TEST and shuffle:
         random.shuffle(zip_list)
@@ -28,15 +28,16 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, gen_type=GEN_TRA
         mask_list = []
 
         for file, mask in batch_files:
-
-            image_red = cv2.imread(file,cv2.IMREAD_UNCHANGED)
-            image_green = cv2.imread(file,cv2.IMREAD_UNCHANGED)
-            image_blue = cv2.imread(file,cv2.IMREAD_UNCHANGED)
-            image_nir = cv2.imread(file,cv2.IMREAD_UNCHANGED)
-
+            image = cv2.imread(file,cv2.IMREAD_UNCHANGED)
+            if num_of_channels == 4:
+                image_red = image_green = image_blue = image_nir = image
+                image = np.stack((image_red, image_green, image_blue, image_nir), axis=-1)
+            elif num_of_channels == 1:
+                pass
+            else:
+                print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+                exit(1)
             mask = imread(mask)
-
-            image = np.stack((image_red, image_green, image_blue, image_nir), axis=-1)
 
             image = resize(image, (img_rows, img_cols), preserve_range=True, mode='symmetric')
             mask = resize(mask, (img_rows, img_cols), preserve_range=True, mode='symmetric')

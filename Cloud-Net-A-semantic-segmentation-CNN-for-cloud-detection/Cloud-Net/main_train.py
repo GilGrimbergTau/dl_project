@@ -12,6 +12,14 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 from generators import mybatch_generator, GEN_TRAIN, GEN_VAL, GEN_TEST
 import pandas as pd
 from utils import get_input_image_names
+from keras import models,layers
+import tensorflow as tf
+
+def check_trainability(model):
+    trainable_count = np.sum([tf.keras.backend.count_params(w) for w in model.trainable_weights])
+    non_trainable_count = np.sum([tf.keras.backend.count_params(w) for w in model.non_trainable_weights])
+    print(f"Trainable params: {trainable_count:,}")
+    print(f"Non-trainable params: {non_trainable_count:,}")
 
 
 def train():
@@ -19,10 +27,9 @@ def train():
                                        input_cols=in_cols,
                                        num_of_channels=num_of_channels,
                                        num_of_classes=num_of_classes)
-    model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
     # model.summary()
 
-    model_checkpoint = ModelCheckpoint(weights_path, monitor='val_loss', save_best_only=True)
+    model_checkpoint = ModelCheckpoint(new_weights_path, monitor='val_loss', save_best_only=True)
     lr_reducer = ReduceLROnPlateau(factor=decay_factor, cooldown=0, patience=patience, min_lr=end_learning_rate, verbose=1)
     csv_logger = CSVLogger(experiment_name + '_log_1.log')
 
@@ -31,21 +38,70 @@ def train():
                                                                                       random_state=42, shuffle=True)
 
     if train_resume:
-        model.load_weights(weights_path)
+        model.load_weights(trained_weights_path)
         print("\nTraining resumed...")
+        # 2. Extract weights from the original first conv layer
+        # Usually index 1 if index 0 is the InputLayer
+        old_first_layer = model.layers[1] 
+        weights, biases = old_first_layer.get_weights()
+
+        # weights shape is (h, w, 4, filters)
+        # We need to transform it to (h, w, 1, filters)
+        # Strategy: Averaging the weights across the channel axis
+        new_weights = np.mean(weights, axis=2, keepdims=True)
+
+        new_model = cloud_net_model.model_arch(input_rows=192, input_cols=192, num_of_channels=1)
+
+        # Set the transformed weights to the first Conv2D layer of the new model
+        new_model.layers[1].set_weights([new_weights, biases])
+
+        # Copy all other weights for the remaining layers
+        # We skip the first layer (index 1) because we just set it manually
+        for i in range(2, len(new_model.layers)):
+            new_model.layers[i].set_weights(model.layers[i].get_weights())
+
+        model = new_model
+        print("Weights successfully transferred to 1-channel model.")
+        # 1. Freeze all layers
+        model.trainable = True # Start with everything enabled
+        for layer in model.layers:
+            layer.trainable = False
+
+        # 2. Unfreeze only the first Conv2D layer
+        # index 0 is Input, index 1 is the first Conv2D
+        model.layers[1].trainable = True
+        # 3. Compile the model (Crucial: changes to 'trainable' require re-compiling)
+        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        check_trainability(model)
+        # 4. Train for a few epochs
+        model.fit(
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
+        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / batch_sz)), epochs=max_num_of_epochs_first_layer_only, verbose=1,
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_VAL),
+        validation_steps=np.int32(np.ceil(len(val_img_split) / batch_sz)),
+        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(end_learning_rate), csv_logger])
+        # 1. Unfreeze everything
+        for layer in model.layers:
+            layer.trainable = True
+
+        # 2. Re-compile
+        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        check_trainability(model)
     else:
         print("\nTraining started from scratch... ")
-
+        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        check_trainability(model)
     print("Experiment name: ", experiment_name)
     print("Input image size: ", (in_rows, in_cols))
     print("Number of input spectral bands: ", num_of_channels)
     print("Learning rate: ", starting_learning_rate)
     print("Batch size: ", batch_sz, "\n")
 
+    
     model.fit(
-        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
         steps_per_epoch=np.int32(np.ceil(len(train_img_split) / batch_sz)), epochs=max_num_epochs, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_VAL),
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_VAL),
         validation_steps=np.int32(np.ceil(len(val_img_split) / batch_sz)),
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(end_learning_rate), csv_logger])
 
@@ -61,14 +117,16 @@ num_of_classes = 1
 starting_learning_rate = 1e-4
 end_learning_rate = 1e-8
 max_num_epochs = 20  # just a huge number. The actual training should not be limited by this value
+max_num_of_epochs_first_layer_only = 5
 val_ratio = 0.2
 patience = 15
 decay_factor = 0.7
 batch_sz = 16
 max_bit = 65535  # maximum gray level in landsat 8 images
 experiment_name = "Cloud-Net"
-weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/first_time_training.h5")
-train_resume = False
+new_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/first_time_training.h5")
+trained_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/Cloud-Net_trained_on_38-Cloud_training_patches.h5")
+train_resume = True
 
 # getting input images names
 # train_patches_csv_name = 'training_patches_38-cloud.csv'

@@ -25,7 +25,7 @@ def prediction():
     print("Batch size = ", batch_sz)
 
     imgs_mask_test = model.predict(
-        mybatch_generator(list(zip(test_imgs, test_masks)), in_rows, in_cols, batch_sz, max_possible_input_value=max_bit, gen_type=GEN_TEST, shuffle=False),
+        mybatch_generator(list(zip(test_imgs, test_masks)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TEST, shuffle=False),
         steps=np.int32(np.ceil(len(test_imgs) / batch_sz)))
 
     print("Saving predicted cloud masks on disk... \n")
@@ -47,7 +47,7 @@ PRED_FOLDER = os.path.join(GLOBAL_PATH, 'Predictions')
 
 in_rows = 384
 in_cols = 384
-num_of_channels = 4
+num_of_channels = 1
 num_of_classes = 1
 batch_sz = 16
 max_bit = 65535  # maximum gray level in landsat 8 images
