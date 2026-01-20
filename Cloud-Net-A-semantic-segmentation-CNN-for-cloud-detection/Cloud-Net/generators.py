@@ -3,7 +3,7 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
-
+from utils import get_cloud38_cdf,match_to_cdf
 import cv2
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
@@ -14,6 +14,7 @@ GEN_VAL = "gen_val"
 GEN_TEST = "gen_test"
 
 def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=65536):
+    cloud38_cdf = get_cloud38_cdf()
     number_of_batches = np.ceil(len(zip_list) / batch_size)
     if gen_type != GEN_TEST and shuffle:
         random.shuffle(zip_list)
@@ -63,7 +64,8 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4
             mask = mask[..., np.newaxis]
             mask /= 255
             # image /= max_possible_input_value
-            image = percentile_stretch_16bit(image)
+            # image = percentile_stretch_16bit(image)
+            image = match_to_cdf(image, cloud38_cdf)
             image_list.append(image)
             mask_list.append(mask)
 
