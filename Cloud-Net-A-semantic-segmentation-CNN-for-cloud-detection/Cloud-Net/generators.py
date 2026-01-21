@@ -59,7 +59,7 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4
                     image, mask = rotate_cclk_img_and_msk(image, mask)
 
                 if rnd_zoom == 1:
-                    image, mask = zoom_img_and_msk (image, mask)
+                    image, mask = zoom_img_and_msk(image, mask)
 
             mask = mask[..., np.newaxis]
             mask /= 255

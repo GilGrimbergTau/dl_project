@@ -34,6 +34,28 @@ class ADAMLearningRateTracker(keras.callbacks.Callback):
 
 ################### arranging the Dataset ###################
 
+def remove_folders_by_text_file(file_path):
+    # 1. Check if the txt file exists
+    if not os.path.exists(file_path):
+        print(f"Error: The file {file_path} was not found.")
+        return
+
+    with open(file_path, 'r') as f:
+        # Read lines and strip whitespace/newlines
+        paths = [line.strip() for line in f]
+    print(f'About to remove {len(paths)} files...')
+    for folder_path in paths:
+        # 2. Safety check: Does the folder actually exist?
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            try:
+                # 3. Remove the folder and everything inside it
+                shutil.rmtree(folder_path)
+            except Exception as e:
+                print(f"Failed to delete {folder_path}. Reason: {e}")
+        else:
+            print(f"Skipping: {folder_path} (Path does not exist or is not a directory)")
+
+
 def get_excluded_subfolders(base_root_folder, datasets_list):
     """
     a function that given a root folder with multiple subfolders containing all the raw dataset (namely the images with .tif extensions)
@@ -91,6 +113,76 @@ def get_excluded_subfolders(base_root_folder, datasets_list):
             ex_f.write(f'{folder}\n')
     return list(excluded_folders)
 
+
+import json
+from PIL import Image
+
+def generate_dataset_stats(base_root_folder, datasets_list, output_file='dataset_cloud_stats.json'):
+    # 1. Initialize the results structure
+    stats = {}
+    for ds in datasets_list:
+        stats[ds.Name] = {
+            "ground_images_count": 0,
+            "cloudy_images_count": 0,
+            "total_pixels_zero": 0,
+            "total_pixels_not_zero": 0,
+            "percent_cloudy_pixels": 0.0  # Placeholder for the final calculation
+        }
+
+    # 2. Walk through the directory tree
+    for root, dirs, files in os.walk(base_root_folder):
+        # Look specifically for the cloud mask file
+        if "no_land_no_water.tif" in files:
+            
+            # Identify which dataset this folder belongs to
+            current_ds_name = None
+            for ds in datasets_list:
+                if ds.Name in root:
+                    current_ds_name = ds.Name
+                    break
+            
+            if not current_ds_name:
+                continue
+
+            file_path = os.path.join(root, "no_land_no_water.tif")
+            
+            try:
+                with Image.open(file_path) as img:
+                    img_array = np.array(img)
+                    
+                    # Count non-zero (clouds) vs zero (ground)
+                    num_not_zero = np.count_nonzero(img_array)
+                    num_zero = img_array.size - num_not_zero
+                    
+                    # Update image counts
+                    if num_not_zero == 0:
+                        stats[current_ds_name]["ground_images_count"] += 1
+                    else:
+                        stats[current_ds_name]["cloudy_images_count"] += 1
+                    
+                    # Aggregate pixel counts (cast to int for JSON compatibility)
+                    stats[current_ds_name]["total_pixels_zero"] += int(num_zero)
+                    stats[current_ds_name]["total_pixels_not_zero"] += int(num_not_zero)
+            except Exception as e:
+                print(f"Could not process {file_path}: {e}")
+
+    # 3. Compute Percentages
+    for ds_name, data in stats.items():
+        total_pixels = data["total_pixels_zero"] + data["total_pixels_not_zero"]
+        
+        if total_pixels > 0:
+            # Percentage of cloud pixels (non-zero) out of total pixels
+            cloud_percentage = (data["total_pixels_not_zero"] / total_pixels) * 100
+            stats[ds_name]["percent_cloudy_pixels"] = round(cloud_percentage, 4)
+        else:
+            stats[ds_name]["percent_cloudy_pixels"] = 0.0
+
+    # 4. Save to JSON
+    with open(output_file, 'w') as jf:
+        json.dump(stats, jf, indent=4)
+        
+    print(f"Statistics successfully saved to {output_file}")
+    return stats
 
 def get_split_paths(target_dir, if_train):
     """
@@ -237,11 +329,12 @@ def match_to_cdf(source_img, reference_cdf):
 
 
 # # Get all members of the module
-# members = inspect.getmembers(raw_dataset_info)
+members = inspect.getmembers(raw_dataset_info)
 
-# # Filter for objects that are instances of Dataset
-# dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
+# Filter for objects that are instances of Dataset
+dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
 
 # print(f"Found {len(dataset_list)} datasets.")
 
 # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
+generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
