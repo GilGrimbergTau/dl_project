@@ -5,15 +5,14 @@ import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
 from utils import get_cloud38_cdf,match_to_cdf
 import cv2
+
+from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, NUM_OF_CHANNELS
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
 """
 
-GEN_TRAIN = "gen_train"
-GEN_VAL = "gen_val"
-GEN_TEST = "gen_test"
 
-def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=65536):
+def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=NUM_OF_CHANNELS, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=MAX_BIT):
     cloud38_cdf = get_cloud38_cdf()
     number_of_batches = np.ceil(len(zip_list) / batch_size)
     if gen_type != GEN_TEST and shuffle:
@@ -80,7 +79,7 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size,num_of_channels=4
             counter = 0
 
 
-# def mybatch_generator_validation(zip_list, img_rows, img_cols, batch_size, shuffle=False, max_possible_input_value=65536):
+# def mybatch_generator_validation(zip_list, img_rows, img_cols, batch_size, shuffle=False, max_possible_input_value=MAX_BIT):
 #     number_of_batches = np.ceil(len(zip_list) / batch_size)
 #     if shuffle:
 #         random.shuffle(zip_list)
@@ -132,7 +131,7 @@ def percentile_stretch_16bit(img, p_low=2, p_high=98):
 
     return stretched.astype(np.uint16)
 
-# def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_possible_input_value=65536):
+# def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_possible_input_value=MAX_BIT):
 #     number_of_batches = np.ceil(len(tstfiles) / batch_size)
 #     counter = 0
 

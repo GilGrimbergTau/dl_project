@@ -15,6 +15,9 @@ from utils import get_input_image_names
 from keras import models,layers
 import tensorflow as tf
 
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR
+
+
 def check_trainability(model):
     trainable_count = np.sum([tf.keras.backend.count_params(w) for w in model.trainable_weights])
     non_trainable_count = np.sum([tf.keras.backend.count_params(w) for w in model.non_trainable_weights])
@@ -23,18 +26,18 @@ def check_trainability(model):
 
 
 def train():
-    model = cloud_net_model.model_arch(input_rows=in_rows,
-                                       input_cols=in_cols,
-                                       num_of_channels=num_of_channels,
-                                       num_of_classes=num_of_classes)
+    model = cloud_net_model.model_arch(input_rows=IN_ROWS,
+                                       input_cols=IN_COLS,
+                                       num_of_channels=NUM_OF_CHANNELS,
+                                       num_of_classes=NUM_OF_CLASSES)
     # model.summary()
 
     model_checkpoint = ModelCheckpoint(new_weights_path, monitor='val_loss', save_best_only=True)
-    lr_reducer = ReduceLROnPlateau(factor=decay_factor, cooldown=0, patience=patience, min_lr=end_learning_rate, verbose=1)
+    lr_reducer = ReduceLROnPlateau(factor=DACEY_FACTOR, cooldown=0, patience=PATIENCE, min_lr=END_LEARNING_RATE, verbose=1)
     csv_logger = CSVLogger(experiment_name + '_log_1.log')
 
     train_img_split, val_img_split, train_msk_split, val_msk_split = train_test_split(train_img, train_msk,
-                                                                                      test_size=val_ratio,
+                                                                                      test_size=VAL_RATIO,
                                                                                       random_state=42, shuffle=True)
 
     if train_resume:
@@ -71,58 +74,46 @@ def train():
         # index 0 is Input, index 1 is the first Conv2D
         model.layers[1].trainable = True
         # 3. Compile the model (Crucial: changes to 'trainable' require re-compiling)
-        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
         check_trainability(model)
         # 4. Train for a few epochs
         model.fit(
-        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
-        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / batch_sz)), epochs=max_num_of_epochs_first_layer_only, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_VAL),
-        validation_steps=np.int32(np.ceil(len(val_img_split) / batch_sz)),
-        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(end_learning_rate), csv_logger])
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
+        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, verbose=1,
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
+        validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
+        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
         # 1. Unfreeze everything
         for layer in model.layers:
             layer.trainable = True
 
         # 2. Re-compile
-        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
         check_trainability(model)
     else:
         print("\nTraining started from scratch... ")
-        model.compile(optimizer=Adam(learning_rate=starting_learning_rate), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
         check_trainability(model)
     print("Experiment name: ", experiment_name)
-    print("Input image size: ", (in_rows, in_cols))
-    print("Number of input spectral bands: ", num_of_channels)
-    print("Learning rate: ", starting_learning_rate)
-    print("Batch size: ", batch_sz, "\n")
+    print("Input image size: ", (IN_ROWS, IN_COLS))
+    print("Number of input spectral bands: ", NUM_OF_CHANNELS)
+    print("Learning rate: ", STARTING_LAERNING_RATE)
+    print("Batch size: ", BATCH_SIZE, "\n")
 
     
     model.fit(
-        mybatch_generator(list(zip(train_img_split, train_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TRAIN),
-        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / batch_sz)), epochs=max_num_epochs, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_VAL),
-        validation_steps=np.int32(np.ceil(len(val_img_split) / batch_sz)),
-        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(end_learning_rate), csv_logger])
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
+        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS, verbose=1,
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
+        validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
+        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
 
 
 GLOBAL_PATH = r"/opt/DL_project/"
 # TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
 # TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
 
-in_rows = 192
-in_cols = 192
-num_of_channels = 4
-num_of_classes = 1
-starting_learning_rate = 1e-4
-end_learning_rate = 1e-8
-max_num_epochs = 20  # just a huge number. The actual training should not be limited by this value
-max_num_of_epochs_first_layer_only = 5
-val_ratio = 0.2
-patience = 2
-decay_factor = 0.7
-batch_sz = 16
-max_bit = 65535  # maximum gray level in landsat 8 images
+
 experiment_name = "Cloud-Net"
 new_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/first_time_training.h5")
 trained_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/Cloud-Net_trained_on_38-Cloud_training_patches.h5")

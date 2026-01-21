@@ -9,24 +9,26 @@ import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
 
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT
+
 import cv2
 
 def prediction():
-    model = cloud_net_model.model_arch(input_rows=in_rows,
-                                       input_cols=in_cols,
-                                       num_of_channels=num_of_channels,
-                                       num_of_classes=num_of_classes)
+    model = cloud_net_model.model_arch(input_rows=IN_ROWS,
+                                       input_cols=IN_COLS,
+                                       num_of_channels=NUM_OF_CHANNELS,
+                                       num_of_classes=NUM_OF_CLASSES)
     model.load_weights(weights_path)
 
     print("\nExperiment name: ", experiment_name)
     print("Prediction started... ")
-    print("Input image size = ", (in_rows, in_cols))
-    print("Number of input spectral bands = ", num_of_channels)
-    print("Batch size = ", batch_sz)
+    print("Input image size = ", (IN_ROWS, IN_COLS))
+    print("Number of input spectral bands = ", NUM_OF_CHANNELS)
+    print("Batch size = ", BATCH_SIZE)
 
     imgs_mask_test = model.predict(
-        mybatch_generator(list(zip(test_imgs, test_masks)), in_rows, in_cols, batch_sz,num_of_channels=1, max_possible_input_value=max_bit, gen_type=GEN_TEST, shuffle=False),
-        steps=np.int32(np.ceil(len(test_imgs) / batch_sz)))
+        mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False),
+        steps=np.int32(np.ceil(len(test_imgs) / BATCH_SIZE)))
 
     print("Saving predicted cloud masks on disk... \n")
 
@@ -45,12 +47,6 @@ TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
 PRED_FOLDER = os.path.join(GLOBAL_PATH, 'Predictions')
 
 
-in_rows = 384
-in_cols = 384
-num_of_channels = 1
-num_of_classes = 1
-batch_sz = 16
-max_bit = 65535  # maximum gray level in landsat 8 images
 # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
 experiment_name = "first_time_training"
 weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
