@@ -5,12 +5,12 @@ FINE_TUNE_NUM_OF_CHANNELS = 1
 NUM_OF_CLASSES = 1
 STARTING_LAERNING_RATE = 1e-4
 END_LEARNING_RATE = 1e-8
-MAX_NUM_OF_EPOCHS = 2  # just a huge number. The actual training should not be limited by this value
-MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY = 1
+MAX_NUM_OF_EPOCHS = 2000  # just a huge number. The actual training should not be limited by this value
+MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY = 5
 VAL_RATIO = 0.2
 PATIENCE = 2
 DACEY_FACTOR = 0.7
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 MAX_BIT = 65535  # maximum gray level in landsat 8 images
 GLOBAL_PATH = '/opt/DL_project/'
 

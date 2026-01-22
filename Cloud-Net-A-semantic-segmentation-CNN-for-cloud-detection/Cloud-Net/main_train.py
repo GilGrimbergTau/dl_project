@@ -35,7 +35,7 @@ def train():
 
     model_checkpoint = ModelCheckpoint(new_weights_path, monitor='val_loss', save_best_only=True)
     lr_reducer = ReduceLROnPlateau(factor=DACEY_FACTOR, cooldown=0, patience=PATIENCE, min_lr=END_LEARNING_RATE, verbose=1)
-    csv_logger = CSVLogger(experiment_name + '_log_1.log')
+    csv_logger = CSVLogger(os.path.join(experiment_folder._str,experiment_name + '_log_1.log'))
 
     # train_img_split, val_img_split, train_msk_split, val_msk_split = train_test_split(train_img, train_msk,
     #                                                                                   test_size=VAL_RATIO,

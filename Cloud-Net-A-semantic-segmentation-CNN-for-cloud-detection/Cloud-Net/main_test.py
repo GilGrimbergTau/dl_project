@@ -32,14 +32,13 @@ def prediction():
 
     print("Saving predicted cloud masks on disk... \n")
 
-    pred_dir = "sorted_dataset"
-    if not os.path.exists(os.path.join(PRED_FOLDER, pred_dir)):
-        os.mkdir(os.path.join(PRED_FOLDER, pred_dir))
+    if not os.path.exists(PRED_FOLDER):
+        os.mkdir(PRED_FOLDER)
 
     for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
         pred_image = (pred_image[:, :, 0]).astype(np.float32)
         image_name = os.path.basename(gt_mask).split(".")[0]
-        cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, image_name + "_pred.tif"), pred_image)
+        cv2.imwrite(os.path.join(PRED_FOLDER, image_name + "_pred.tif"), pred_image)
 
 
 
