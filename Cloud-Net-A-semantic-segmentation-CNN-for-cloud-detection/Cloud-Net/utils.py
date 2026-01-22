@@ -12,6 +12,7 @@ import raw_dataset_info  # The file containing dataset1, dataset2, etc.
 from raw_dataset_info import Dataset # The class definition
 import json
 from PIL import Image
+from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
     """It prints out the last used learning rate after each epoch (useful for resuming a training)
@@ -244,7 +245,7 @@ def generate_dataset_stats(base_root_folder, datasets_list, output_file='dataset
     print(f"Statistics successfully saved to {output_file}")
     return stats
 
-def get_split_paths(target_dir, if_train):
+def get_split_paths(target_dir, gen_type=GEN_TRAIN):
     """
     Retrieves sorted lists of file paths for images and masks from a specific split.
 
@@ -256,13 +257,19 @@ def get_split_paths(target_dir, if_train):
         tuple: (image_paths, mask_paths) where each is a list of Path objects.
     """
     # Define the paths to the specific split folders
-    split_path = Path(target_dir) / "train" if if_train else Path(target_dir) / "test"
+    if gen_type == GEN_TRAIN:
+        split_path = Path(target_dir) / "train"
+    elif gen_type == GEN_VAL:
+        split_path = Path(target_dir) / "val"
+    else:
+        split_path = Path(target_dir) / "test"
+
     images_dir = split_path / "images"
     masks_dir = split_path / "masks"
 
     # Check if directories exist to avoid errors
     if not images_dir.exists() or not masks_dir.exists():
-        print(f"Error: {if_train} directory structure not found in {target_dir}")
+        print(f"Error: {gen_type} directory structure not found in {target_dir}")
         return [], []
 
     # Get all .tif files and sort them to ensure matching indices
@@ -271,15 +278,15 @@ def get_split_paths(target_dir, if_train):
 
     # Simple validation to ensure parity
     if len(image_paths) != len(mask_paths):
-        print(f"Warning: Mismatch in {if_train} set! "
+        print(f"Warning: Mismatch in {gen_type} set! "
               f"Images: {len(image_paths)}, Masks: {len(mask_paths)}")
         return [], []
 
     return image_paths, mask_paths
 
-def get_input_image_names(data_folder_path, if_train=True):
+def get_input_image_names(data_folder_path, gen_type=GEN_TRAIN):
 
-    list_img, list_msk =  get_split_paths(data_folder_path, if_train)
+    list_img, list_msk =  get_split_paths(data_folder_path, gen_type)
     return list_img, list_msk
     
     # return list_img, list_test_ids
@@ -409,4 +416,4 @@ if __name__ == "__main__":
 
     # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
     # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
-    sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
+    # sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")

@@ -9,13 +9,14 @@ from losses import jacc_coef
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 # from generators import mybatch_generator_train, mybatch_generator_validation
-from generators import mybatch_generator, GEN_TRAIN, GEN_VAL, GEN_TEST
+from generators import mybatch_generator
 import pandas as pd
 from utils import get_input_image_names
 from keras import models,layers
 import tensorflow as tf
+from pathlib import Path
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, GEN_TEST
 
 
 def check_trainability(model):
@@ -36,9 +37,9 @@ def train():
     lr_reducer = ReduceLROnPlateau(factor=DACEY_FACTOR, cooldown=0, patience=PATIENCE, min_lr=END_LEARNING_RATE, verbose=1)
     csv_logger = CSVLogger(experiment_name + '_log_1.log')
 
-    train_img_split, val_img_split, train_msk_split, val_msk_split = train_test_split(train_img, train_msk,
-                                                                                      test_size=VAL_RATIO,
-                                                                                      random_state=42, shuffle=True)
+    # train_img_split, val_img_split, train_msk_split, val_msk_split = train_test_split(train_img, train_msk,
+    #                                                                                   test_size=VAL_RATIO,
+    #                                                                                   random_state=42, shuffle=True)
 
     if train_resume:
         model.load_weights(trained_weights_path)
@@ -109,20 +110,24 @@ def train():
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
 
 
-GLOBAL_PATH = r"/opt/DL_project/"
 # TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
 # TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
 
 
-experiment_name = "Cloud-Net"
-new_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/first_time_training.h5")
+experiment_name = "first_time_full_data_cut"
+# create folder in trained_models
+experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
+experiment_folder.mkdir(parents=True, exist_ok=True)
+
+new_weights_path = os.path.join(experiment_folder._str,f"{experiment_name}.h5")
 trained_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/Cloud-Net_trained_on_38-Cloud_training_patches.h5")
 train_resume = True
 
 # getting input images names
 # train_patches_csv_name = 'training_patches_38-cloud.csv'
 # df_train_img = pd.read_csv(os.path.join(TRAIN_FOLDER, train_patches_csv_name))
-dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset')
-train_img, train_msk = get_input_image_names(dataset_folder, if_train=True)
+dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
+train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
+val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
 
 train()

@@ -37,7 +37,7 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
             else:
                 print(f"Got illegal number of channels: {num_of_channels}! Exiting")
                 exit(1)
-            mask = imread(mask)
+            mask = cv2.imread(mask, cv2.IMREAD_UNCHANGED)
 
             image = resize(image, (img_rows, img_cols), preserve_range=True, mode='symmetric')
             mask = resize(mask, (img_rows, img_cols), preserve_range=True, mode='symmetric')

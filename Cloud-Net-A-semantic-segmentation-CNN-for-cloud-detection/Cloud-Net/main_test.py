@@ -4,12 +4,12 @@ import os
 import numpy as np
 import cloud_net_model
 # from generators import mybatch_generator_prediction
-from generators import mybatch_generator, GEN_TEST
+from generators import mybatch_generator
 import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST
 
 import cv2
 
@@ -41,21 +41,19 @@ def prediction():
         image_name = os.path.basename(gt_mask).split(".")[0]
         cv2.imwrite(os.path.join(PRED_FOLDER, pred_dir, image_name + "_pred.tif"), pred_image)
 
-GLOBAL_PATH = '/opt/DL_project/cloud38_dataset/'
-TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
-TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
-PRED_FOLDER = os.path.join(GLOBAL_PATH, 'Predictions')
+
 
 
 # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
-experiment_name = "first_time_training"
-weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
+experiment_name = "first_time_full_data_cut"
+PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
+weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
 
 
 # getting input images names
 # test_patches_csv_name = 'test_patches_38-cloud.csv'
 # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
-dataset_folder = r"/opt/DL_project/sorted_dataset/"
-test_imgs, test_masks = get_input_image_names(dataset_folder, if_train=False)
+dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
+test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
 
 prediction()
