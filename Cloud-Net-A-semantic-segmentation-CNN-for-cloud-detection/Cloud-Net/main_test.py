@@ -9,25 +9,25 @@ import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT
 
 import cv2
 
 def prediction():
     model = cloud_net_model.model_arch(input_rows=IN_ROWS,
                                        input_cols=IN_COLS,
-                                       num_of_channels=NUM_OF_CHANNELS,
+                                       num_of_channels=FINE_TUNE_NUM_OF_CHANNELS,
                                        num_of_classes=NUM_OF_CLASSES)
     model.load_weights(weights_path)
 
     print("\nExperiment name: ", experiment_name)
     print("Prediction started... ")
     print("Input image size = ", (IN_ROWS, IN_COLS))
-    print("Number of input spectral bands = ", NUM_OF_CHANNELS)
+    print("Number of input spectral bands = ", FINE_TUNE_NUM_OF_CHANNELS)
     print("Batch size = ", BATCH_SIZE)
 
     imgs_mask_test = model.predict(
-        mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False),
+        mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False),
         steps=np.int32(np.ceil(len(test_imgs) / BATCH_SIZE)))
 
     print("Saving predicted cloud masks on disk... \n")
@@ -53,7 +53,7 @@ weights_path = os.path.join(GLOBAL_PATH, experiment_name + '.h5')
 
 
 # getting input images names
-test_patches_csv_name = 'test_patches_38-cloud.csv'
+# test_patches_csv_name = 'test_patches_38-cloud.csv'
 # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
 dataset_folder = r"/opt/DL_project/sorted_dataset/"
 test_imgs, test_masks = get_input_image_names(dataset_folder, if_train=False)
