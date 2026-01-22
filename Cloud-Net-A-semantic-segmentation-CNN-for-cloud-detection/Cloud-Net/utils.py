@@ -285,7 +285,7 @@ def get_input_image_names(data_folder_path, if_train=True):
     # return list_img, list_test_ids
 
 
-def sort_dataset(source_dir, target_dir, test_list_file):
+def sort_dataset(source_dir, target_dir, test_list_file, val_list_file):
     """
     Recursively traverses a source directory to identify pairs of numeric image files and their 
     corresponding masks. It splits these pairs into "train" and "test" sets based on a provided text 
@@ -299,59 +299,70 @@ def sort_dataset(source_dir, target_dir, test_list_file):
     source_path = Path(source_dir)
     target_path = Path(target_dir)
     
-    # Read the test list
-    with open(test_list_file, 'r') as f:
-        test_folders = {line.strip() for line in f if line.strip()}
+    # Helper to read lists safely
+    def read_list(file_path):
+        with open(file_path, 'r') as f:
+            return [line.strip() for line in f if (not line.startswith("#") and line.strip())]
 
-    # Create target directory structure
-    for split in ['train', 'test']:
+    # Read the split lists
+    test_folders = read_list(test_list_file)
+    val_folders = read_list(val_list_file)
+
+    # Create target directory structure for all three splits
+    for split in ['train', 'test', 'val']:
         for folder in ['images', 'masks']:
             (target_path / split / folder).mkdir(parents=True, exist_ok=True)
 
     # Find and sort all numeric .tif files
-    numeric_pattern = re.compile(r'^\d+\.tif$')
-    image_files = [f for f in source_path.rglob("*.tif") if numeric_pattern.match(f.name)]
-    image_files.sort() # Ensure consistent indexing order
+    mask_files = [f for f in source_path.rglob("*.tif") if f.name.__contains__("no_land")]
+    mask_files.sort() # Ensure consistent indexing order
     
-    print(f"Found {len(image_files)} potential images. Processing...")
+    print(f"Found {len(mask_files)} potential images. Processing...")
 
     # Manual counter to ensure continuous indexing for successful pairs
     current_index = 0
 
-    for file_path in image_files:
+    for mask_path in mask_files:
         # Ignore any file if "demo" is in its folder path
-        if "demo" in file_path.parts:
+        if "demo" in mask_path.parts:
             continue
         # Determine split: test if any parent folder is in the test_folders list
-        is_test = any(part in test_folders for part in file_path.parts)
-        split = 'test' if is_test else 'train'
-        
-        # Look for the mask in the SAME folder as the image
-        mask_path = file_path.parent / "no_land_no_water.tif"
+        # Check if any parent folder is in test list, then check validation list, else train
+        if any(part in test_folders for part in mask_path.parts):
+            split = 'test'
+        elif any(part in val_folders for part in mask_path.parts):
+            split = 'val'
+        else:
+            split = 'train'
         
         if mask_path.exists():
             # Get the folder name TWO levels upstream
             try:
-                upstream_folder = file_path.parents[1].name
+                upstream_folder = mask_path.parent
+                yaaf_name = mask_path.parents[1].name
             except IndexError:
-                upstream_folder = "unknown"
+                yaaf_name = "unknown"
 
+            for file in upstream_folder.iterdir():
+                if not "no_land" in str(file):
+                    image_path = file
+                    break
             # Construct filenames using the manual counter
-            new_filename = f"{current_index:06d}_{upstream_folder}.tif"
+            new_filename = f"{current_index:06d}_{yaaf_name}.tif"
 
             # Define destinations
             dest_img = target_path / split / 'images' / new_filename
             dest_mask = target_path / split / 'masks' / new_filename
 
             # Copy files
-            shutil.copy2(file_path, dest_img)
+            shutil.copy2(image_path, dest_img)
             shutil.copy2(mask_path, dest_mask)
             
             # ONLY increment index if copy was successful
             current_index += 1
         else:
             # If mask is missing, we skip this image and the index does NOT increase
-            print(f"Skipping: Mask missing for {file_path}")
+            print(f"Skipping: Mask missing for {mask_path}")
 
     print(f"Process complete. Total paired files copied: {current_index}")
 
@@ -397,4 +408,5 @@ if __name__ == "__main__":
     # print(f"Found {len(dataset_list)} datasets.")
 
     # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
-    generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
+    # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
+    sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
