@@ -1,0 +1,443 @@
+{
+    "CaptiveC8_Night_2017_05_15Station_3F07_3_DS_netofa3_STPT_00302_UTC_19_35_45": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F01_D01_m47_hood_amit1_050_30_17_4_51": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 11932818,
+        "total_pixels_not_zero": 3795822,
+        "percent_cloudy_pixels": 24.1332
+    },
+    "F02_2_D11_pelech_moving_truck_17_32_10": {
+        "ground_images_count": 125,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 98304000,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F02_m22_beit_ran10_040_40_00589": {
+        "ground_images_count": 278,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 218628096,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F03_D03_m27_meron_bush1_090_85_9_35_11": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F03_m55_ziron_hom3_135_20_00573_sim_release": {
+        "ground_images_count": 274,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 215482368,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F04_m25_hood_amit1_300_30_00592": {
+        "ground_images_count": 195,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 153354240,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F04_m59_gal_hom1_175_30_00574": {
+        "ground_images_count": 303,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 238288896,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F05_m27_nazarath_bsora_100_20_00594": {
+        "ground_images_count": 348,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 273678336,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F05_m52_west_hom2_050_70_00575": {
+        "ground_images_count": 282,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 221773824,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F06_D05_m31_shabeyzion_hotel_090_50_18_1_41": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 19,
+        "total_pixels_zero": 7160740,
+        "total_pixels_not_zero": 7781468,
+        "percent_cloudy_pixels": 52.0771
+    },
+    "F06_D10_m85_alonmore_skali1_090_75_10_13_21": {
+        "ground_images_count": 344,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 270532608,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F07_2_DS_netofa3_STPT_00302_UTC_19_32_53": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 46,
+        "total_pixels_zero": 33278691,
+        "total_pixels_not_zero": 2897181,
+        "percent_cloudy_pixels": 8.0086
+    },
+    "F07_D07_m38_pickyou_shed1_090_20_18_9_11": {
+        "ground_images_count": 313,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 246153216,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F08_m24_carmiel_mtsh2_250_20_00440": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F09_D12_m81_yosef_circle1_341_45_10_43_44": {
+        "ground_images_count": 358,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 281542656,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F09_m20_meron_iba1_090_20_00441": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F09_m67_nofaviv_rnw33w_331_10_00304_UTC_20_10_25": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 62,
+        "total_pixels_zero": 32912088,
+        "total_pixels_not_zero": 15846696,
+        "percent_cloudy_pixels": 32.5002
+    },
+    "F10_2_D02_tephen_moving_target_18_41_15": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 19,
+        "total_pixels_zero": 8661736,
+        "total_pixels_not_zero": 6280472,
+        "percent_cloudy_pixels": 42.0318
+    },
+    "F10_4_D02_tephen_moving_target_18_45_32": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 8,
+        "total_pixels_zero": 3547582,
+        "total_pixels_not_zero": 2743874,
+        "percent_cloudy_pixels": 43.6127
+    },
+    "F10_D09_m83_yosef_shemer01_155_15_10_53_45": {
+        "ground_images_count": 285,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 224133120,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F11_D12_m50_shchania_house28_090_30_18_47_14": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 15,
+        "total_pixels_zero": 6650658,
+        "total_pixels_not_zero": 5145822,
+        "percent_cloudy_pixels": 43.6217
+    },
+    "F11_D14_m88_nofaviv_rnw33w_331_10_11_0_35": {
+        "ground_images_count": 236,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 185597952,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F11_m32_poria_heli1_090_65_00442": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F12_D13_m73_hadera_stop1_104_30_18_53_21": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "F14_m69_nofaviv_rnw15e_027_10_00443_wrong_33e_m66": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "cheyenne42017_07_12_night_flightship_2": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 22,
+        "total_pixels_zero": 12345142,
+        "total_pixels_not_zero": 4956362,
+        "percent_cloudy_pixels": 28.647
+    },
+    "cheyenne42017_07_12_night_flightship_3": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 19,
+        "total_pixels_zero": 6670902,
+        "total_pixels_not_zero": 8271306,
+        "percent_cloudy_pixels": 55.3553
+    },
+    "cheyenne42017_07_12_night_flightship_4": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 28,
+        "total_pixels_zero": 14671303,
+        "total_pixels_not_zero": 7348793,
+        "percent_cloudy_pixels": 33.3731
+    },
+    "cheyenne42017_07_12_night_flightship_7": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 8838869,
+        "total_pixels_not_zero": 6889771,
+        "percent_cloudy_pixels": 43.804
+    },
+    "cheyenne4_2017_07_12_night_flighthaifa_1": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "cheyenne4_2017_07_12_night_flightjumps_1": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "jack_SqrCnt_00065": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 10,
+        "total_pixels_zero": 6248301,
+        "total_pixels_not_zero": 1616019,
+        "percent_cloudy_pixels": 20.5487
+    },
+    "jack_SqrCnt_00066": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 8,
+        "total_pixels_zero": 5168826,
+        "total_pixels_not_zero": 1122630,
+        "percent_cloudy_pixels": 17.8437
+    },
+    "jack_SqrCnt_00067": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 5,
+        "total_pixels_zero": 3353283,
+        "total_pixels_not_zero": 578877,
+        "percent_cloudy_pixels": 14.7216
+    },
+    "kashur2c_2lapid_north_day18_20160504st3t03_m05a_ill_hafir1_095_20_02bf": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "kashur2c_2lapid_north_day18_20160504st3t04_m06m_yishai_dtk01_286_45_02c0": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "kashur2c_2lapid_north_day18_20160504st3t05_m04a_sac_amit1_69_45_02c2": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "kashur2c_2lapid_north_day18_20160504st3t06_m01z_beit_ran09_300_50_02c4": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "kashur2c_2lapid_north_day18_20160504st3t08_m01z_beit_ran10_299_55_02c6": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "kashur3c_1_north_day18_20170521st3t10_m02g_shomrat_tube_090_30_05dc": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "night_flight_ship_10_2017_07_12": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "night_flight_ship_11_2017_07_12": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "night_flight_ship_12_2017_07_12": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "night_flight_ship_14_2017_07_12": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "night_flight_ship_8_2017_07_12": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "shayen3_2016_10_31_ILearly_morning_flightrecording_systemt01_4_jumps_way_0417": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "t01_m04a_medusa10_m1_089_50_0383": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 1614223,
+        "total_pixels_not_zero": 597617,
+        "percent_cloudy_pixels": 27.019
+    },
+    "t01_m05a_medusa12_m1_089_30_05a4": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 25,
+        "total_pixels_zero": 1935758,
+        "total_pixels_not_zero": 829042,
+        "percent_cloudy_pixels": 29.9856
+    },
+    "t02_m31m_haifa01_hf011_137_60_055C": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 0,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "t03_m03a_medusa18_m2_005_45_0385": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 3,
+        "total_pixels_zero": 226240,
+        "total_pixels_not_zero": 105536,
+        "percent_cloudy_pixels": 31.8094
+    },
+    "t05_m04a_hood_amit1_69_45_02c2": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 52859,
+        "total_pixels_not_zero": 2158981,
+        "percent_cloudy_pixels": 97.6102
+    },
+    "t05_m06a_ashdod_mask2_089_30_0601": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 16,
+        "total_pixels_zero": 580965,
+        "total_pixels_not_zero": 1188507,
+        "percent_cloudy_pixels": 67.1673
+    },
+    "t05_m07a_haifa_ran11_115_45_038b": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 1163435,
+        "total_pixels_not_zero": 1048405,
+        "percent_cloudy_pixels": 47.3997
+    },
+    "t05_m10a_medusa12_m1_285_45_05a8": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 6,
+        "total_pixels_zero": 339369,
+        "total_pixels_not_zero": 324183,
+        "percent_cloudy_pixels": 48.8557
+    },
+    "t06_m01z_beit_ran09_300_50_02c4": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 20,
+        "total_pixels_zero": 1354902,
+        "total_pixels_not_zero": 856938,
+        "percent_cloudy_pixels": 38.7432
+    },
+    "t06_m08a_ashdod_nav2_069_60_0602": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 18,
+        "total_pixels_zero": 1259445,
+        "total_pixels_not_zero": 731211,
+        "percent_cloudy_pixels": 36.7322
+    },
+    "t07_m08a_haifa_ran12_109_45_038d": {
+        "ground_images_count": 1,
+        "cloudy_images_count": 19,
+        "total_pixels_zero": 1749587,
+        "total_pixels_not_zero": 462253,
+        "percent_cloudy_pixels": 20.899
+    },
+    "t07_m10a_ashdod_urban_070_60_0603": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 17,
+        "total_pixels_zero": 1394173,
+        "total_pixels_not_zero": 485891,
+        "percent_cloudy_pixels": 25.8444
+    },
+    "t09_m06a_ashdod_mask2_088_30_0605": {
+        "ground_images_count": 1,
+        "cloudy_images_count": 19,
+        "total_pixels_zero": 342632,
+        "total_pixels_not_zero": 1869208,
+        "percent_cloudy_pixels": 84.5092
+    },
+    "t09_m07a_haifa_raan11_113_45_02c7": {
+        "ground_images_count": 0,
+        "cloudy_images_count": 25,
+        "total_pixels_zero": 1868592,
+        "total_pixels_not_zero": 896208,
+        "percent_cloudy_pixels": 32.4149
+    },
+    "t09_m19a_maapilim20_atl20_112_20_05b6": {
+        "ground_images_count": 30,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 3317760,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    },
+    "t10_m24a_naharia_bush1_085_30_05b7": {
+        "ground_images_count": 20,
+        "cloudy_images_count": 0,
+        "total_pixels_zero": 2211840,
+        "total_pixels_not_zero": 0,
+        "percent_cloudy_pixels": 0.0
+    }
+}

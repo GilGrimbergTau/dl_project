@@ -15,7 +15,7 @@ from utils import get_input_image_names
 from keras import models,layers
 import tensorflow as tf
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR
 
 
 def check_trainability(model):
@@ -28,7 +28,7 @@ def check_trainability(model):
 def train():
     model = cloud_net_model.model_arch(input_rows=IN_ROWS,
                                        input_cols=IN_COLS,
-                                       num_of_channels=NUM_OF_CHANNELS,
+                                       num_of_channels=PRETRAINED_NUM_OF_CHANNELS,
                                        num_of_classes=NUM_OF_CLASSES)
     # model.summary()
 
@@ -53,7 +53,7 @@ def train():
         # Strategy: Averaging the weights across the channel axis
         new_weights = np.mean(weights, axis=2, keepdims=True)
 
-        new_model = cloud_net_model.model_arch(input_rows=192, input_cols=192, num_of_channels=1)
+        new_model = cloud_net_model.model_arch(input_rows=IN_ROWS, input_cols=IN_COLS, num_of_channels=FINE_TUNE_NUM_OF_CHANNELS)
 
         # Set the transformed weights to the first Conv2D layer of the new model
         new_model.layers[1].set_weights([new_weights, biases])
@@ -78,9 +78,9 @@ def train():
         check_trainability(model)
         # 4. Train for a few epochs
         model.fit(
-        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
         steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
         validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
         # 1. Unfreeze everything
@@ -96,15 +96,15 @@ def train():
         check_trainability(model)
     print("Experiment name: ", experiment_name)
     print("Input image size: ", (IN_ROWS, IN_COLS))
-    print("Number of input spectral bands: ", NUM_OF_CHANNELS)
+    print("Number of input spectral bands: ", FINE_TUNE_NUM_OF_CHANNELS)
     print("Learning rate: ", STARTING_LAERNING_RATE)
     print("Batch size: ", BATCH_SIZE, "\n")
 
     
     model.fit(
-        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
+        mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
         steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=1, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
         validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
 

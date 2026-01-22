@@ -10,6 +10,8 @@ import numpy as np
 import inspect
 import raw_dataset_info  # The file containing dataset1, dataset2, etc.
 from raw_dataset_info import Dataset # The class definition
+import json
+from PIL import Image
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
     """It prints out the last used learning rate after each epoch (useful for resuming a training)
@@ -33,6 +35,68 @@ class ADAMLearningRateTracker(keras.callbacks.Callback):
             self.model.stop_training = True
 
 ################### arranging the Dataset ###################
+
+def cut_dataset_to_patches(input_base_dir, output_base_dir):
+    # Constants
+    TARGET_W, TARGET_H = 1024, 768
+    PATCH_W, PATCH_H = 384, 288
+    
+    # Calculate centering offsets
+    start_x = (TARGET_W - (PATCH_W * 2)) // 2  # 128
+    start_y = (TARGET_H - (PATCH_H * 2)) // 2  # 96
+
+    input_root = Path(input_base_dir).resolve()
+    output_root = Path(output_base_dir).resolve()
+
+     # retrieve all the frames with a numeric name (e.g 3452.tif etc.)
+    numeric_pattern = re.compile(r'^\d+\.tif$')
+    image_files = [f for f in Path(input_base_dir).rglob("*.tif") if numeric_pattern.match(f.name) and "demo" not in f.parts]
+    for img_path in image_files:
+        mask_path = img_path.parent / "no_land_no_water.tif"
+        if not os.path.exists(mask_path):
+            mask_path = img_path.parent / "no_water_no_land.tif"
+        try:
+            img = Image.open(img_path)
+            mask = Image.open(mask_path)
+            # 2. MIRROR LOGIC:
+            # Get the path of the folder containing the image, relative to input_base_dir
+            relative_folder = img_path.parent.relative_to(input_root)
+            # 3. Patching
+            img_base_name = img_path.stem 
+            mask_base_name = mask_path.stem 
+            # 1. Shape check
+            if img.size != (TARGET_W, TARGET_H) or mask.size != (TARGET_W, TARGET_H):
+                print(f'image or mask sizes do not correspond to the expected size: expected: {TARGET_W, TARGET_H} and got : {img.size} and {mask.size}')
+                save_dir = output_root / Path(str(relative_folder))
+                # Create the folders if they don't exist
+                save_dir.mkdir(parents=True, exist_ok=True)
+                # Saving to the mirrored directory
+                img_patch_name = f"{img_base_name}.tif"
+                mask_patch_name = f"{mask_base_name}.tif"
+                img_patch.save(save_dir / img_patch_name)
+                mask_patch.save(save_dir / mask_patch_name)
+                continue
+
+            for row in range(2):
+                for col in range(2):
+                    left = start_x + (col * PATCH_W)
+                    top = start_y + (row * PATCH_H)
+                    
+                    img_patch = img.crop((left, top, left + PATCH_W, top + PATCH_H))
+                    mask_patch = mask.crop((left, top, left + PATCH_W, top + PATCH_H))
+                    
+                    # Combine that with the output_base_dir to recreate the tree
+                    save_dir = output_root / Path(str(relative_folder) + f"_{row*2 + col}")
+                    # Create the folders if they don't exist
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    # Saving to the mirrored directory
+                    img_patch_name = f"{img_base_name}_{row*2 + col}.tif"
+                    mask_patch_name = f"{mask_base_name}_{row*2 + col}.tif"
+                    img_patch.save(save_dir / img_patch_name)
+                    mask_patch.save(save_dir / mask_patch_name)
+
+        except Exception as e:
+            print(f"Skipping {img_path.name}: {e}")
 
 def remove_folders_by_text_file(file_path):
     # 1. Check if the txt file exists
@@ -112,10 +176,6 @@ def get_excluded_subfolders(base_root_folder, datasets_list):
         for folder in excluded_folders:
             ex_f.write(f'{folder}\n')
     return list(excluded_folders)
-
-
-import json
-from PIL import Image
 
 def generate_dataset_stats(base_root_folder, datasets_list, output_file='dataset_cloud_stats.json'):
     # 1. Initialize the results structure
