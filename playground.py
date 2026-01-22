@@ -1,7 +1,11 @@
 import json
 import sys
 import os
-sys.path.append(r'/home/gilgrim_out/master_degree/dl_project/Cloud-Net-A-semantic-segmentation-CNN-for-cloud-detection/Cloud-Net')
+
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+target_dir = os.path.join(current_script_dir, "Cloud-Net-A-semantic-segmentation-CNN-for-cloud-detection/Cloud-Net")
+sys.path.append(target_dir)
+
 from utils import cut_dataset_to_patches
 
 def process_pixel_stats(file_path):

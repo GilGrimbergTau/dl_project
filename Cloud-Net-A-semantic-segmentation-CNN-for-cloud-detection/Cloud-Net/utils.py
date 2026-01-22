@@ -73,8 +73,8 @@ def cut_dataset_to_patches(input_base_dir, output_base_dir):
                 # Saving to the mirrored directory
                 img_patch_name = f"{img_base_name}.tif"
                 mask_patch_name = f"{mask_base_name}.tif"
-                img_patch.save(save_dir / img_patch_name)
-                mask_patch.save(save_dir / mask_patch_name)
+                img.save(save_dir / img_patch_name)
+                mask.save(save_dir / mask_patch_name)
                 continue
 
             for row in range(2):
@@ -386,15 +386,15 @@ def match_to_cdf(source_img, reference_cdf):
     # 4. Reconstruct the image
     return matched_values[src_unique_indices].reshape(source_img.shape).astype(np.uint16)
 
+if __name__ == "__main__":
 
+    # # Get all members of the module
+    members = inspect.getmembers(raw_dataset_info)
 
-# # Get all members of the module
-members = inspect.getmembers(raw_dataset_info)
+    # Filter for objects that are instances of Dataset
+    dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
 
-# Filter for objects that are instances of Dataset
-dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
+    # print(f"Found {len(dataset_list)} datasets.")
 
-# print(f"Found {len(dataset_list)} datasets.")
-
-# get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
-generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
+    # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
+    generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
