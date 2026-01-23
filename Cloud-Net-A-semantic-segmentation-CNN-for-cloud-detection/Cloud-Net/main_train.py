@@ -5,7 +5,7 @@ import os
 import numpy as np
 from utils import ADAMLearningRateTracker
 import cloud_net_model
-from losses import jacc_coef
+from losses import jacc_coef, filtered_jaccard_loss_v1
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 # from generators import mybatch_generator_train, mybatch_generator_validation
@@ -15,8 +15,10 @@ from utils import get_input_image_names
 from keras import models,layers
 import tensorflow as tf
 from pathlib import Path
+import datetime
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, VAL_RATIO, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, GEN_TEST
+
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, TRAINED_WEIGHTS_PATH, TRAIN_RESUME, EARLY_STOP_PATIENCE
 
 
 def check_trainability(model):
@@ -26,7 +28,7 @@ def check_trainability(model):
     print(f"Non-trainable params: {non_trainable_count:,}")
 
 
-def train():
+def train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_weights_path,train_img_split, train_msk_split,val_img_split, val_msk_split):
     model = cloud_net_model.model_arch(input_rows=IN_ROWS,
                                        input_cols=IN_COLS,
                                        num_of_channels=PRETRAINED_NUM_OF_CHANNELS,
@@ -35,14 +37,15 @@ def train():
 
     model_checkpoint = ModelCheckpoint(new_weights_path, monitor='val_loss', save_best_only=True)
     lr_reducer = ReduceLROnPlateau(factor=DACEY_FACTOR, cooldown=0, patience=PATIENCE, min_lr=END_LEARNING_RATE, verbose=1)
-    csv_logger = CSVLogger(os.path.join(experiment_folder._str,experiment_name + '_log_1.log'))
-
-    # train_img_split, val_img_split, train_msk_split, val_msk_split = train_test_split(train_img, train_msk,
-    #                                                                                   test_size=VAL_RATIO,
-    #                                                                                   random_state=42, shuffle=True)
-
-    if train_resume:
-        model.load_weights(trained_weights_path)
+    csv_logger = CSVLogger(os.path.join(experiment_folder._str,experiment_name + '.log'))
+    # Define metrics
+    metrics = [jacc_coef,
+        tf.metrics.BinaryAccuracy(name='accuracy'),
+        tf.metrics.Precision(name='precision'),
+        tf.metrics.Recall(name='recall')
+    ]
+    if TRAIN_RESUME:
+        model.load_weights(TRAINED_WEIGHTS_PATH)
         print("\nTraining resumed...")
         # 2. Extract weights from the original first conv layer
         # Usually index 1 if index 0 is the InputLayer
@@ -75,25 +78,29 @@ def train():
         # index 0 is Input, index 1 is the first Conv2D
         model.layers[1].trainable = True
         # 3. Compile the model (Crucial: changes to 'trainable' require re-compiling)
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
         check_trainability(model)
+        # Create a log directory
+        first_layer_logdir = os.path.join(experiment_folder,"logs/first_layer_logs/","loss_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+        csv_first_layer_logger = CSVLogger(os.path.join(experiment_folder._str,'_first_layer_only.log'))
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=first_layer_logdir)
         # 4. Train for a few epochs
         model.fit(
         mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
-        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS_FIRST_LAYER_ONLY, verbose=1,
+        steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=first_layer_max_epochs, verbose=1,
         validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
         validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
-        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
+        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_first_layer_logger, tensorboard_callback])
         # 1. Unfreeze everything
         for layer in model.layers:
             layer.trainable = True
 
         # 2. Re-compile
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
         check_trainability(model)
     else:
         print("\nTraining started from scratch... ")
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=jacc_coef, metrics=[jacc_coef])
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
         check_trainability(model)
     print("Experiment name: ", experiment_name)
     print("Input image size: ", (IN_ROWS, IN_COLS))
@@ -101,33 +108,43 @@ def train():
     print("Learning rate: ", STARTING_LAERNING_RATE)
     print("Batch size: ", BATCH_SIZE, "\n")
 
-    
+    # Create a log directory
+    logdir = os.path.join(experiment_folder,"logs/all_model_loss/","loss_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+    earlyStop_callback = tf.keras.callbacks.EarlyStopping(
+                monitor='val_loss', 
+                patience=EARLY_STOP_PATIENCE, 
+                restore_best_weights=True, # Automatically reverts model to best state
+                verbose=1
+            )
     model.fit(
         mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
         steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=MAX_NUM_OF_EPOCHS, verbose=1,
         validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
         validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
-        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger])
+        callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_logger, tensorboard_callback, earlyStop_callback])
 
+if __name__ == "__main__":
 
-# TRAIN_FOLDER = os.path.join(GLOBAL_PATH, 'Training')
-# TEST_FOLDER = os.path.join(GLOBAL_PATH, 'Test')
+    # getting input images names
+    dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
+    train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
+    val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
 
+    # Define your hyperparameter sets
+    losses = {"FJL": filtered_jaccard_loss_v1, "Jaccard": jacc_coef}
+    # first_layer_epochs_options = [5, 15]
+    first_layer_epochs_options = [5, 15]
 
-experiment_name = "first_time_full_data_cut"
-# create folder in trained_models
-experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
-experiment_folder.mkdir(parents=True, exist_ok=True)
+    for loss_name, loss_fn in losses.items():
+        for first_layer_max_epochs in first_layer_epochs_options:
+            experiment_name = f"data_cut_{loss_name}_first_layer_max_epochs_{first_layer_max_epochs}"
+            # create folder in trained_models
+            experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
+            experiment_folder.mkdir(parents=True, exist_ok=True)
 
-new_weights_path = os.path.join(experiment_folder._str,f"{experiment_name}.h5")
-trained_weights_path = os.path.join(GLOBAL_PATH, "cloud38_dataset/Cloud-Net_trained_on_38-Cloud_training_patches.h5")
-train_resume = True
-
-# getting input images names
-# train_patches_csv_name = 'training_patches_38-cloud.csv'
-# df_train_img = pd.read_csv(os.path.join(TRAIN_FOLDER, train_patches_csv_name))
-dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
-train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
-val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
-
-train()
+            new_weights_path = os.path.join(experiment_folder._str,f"{experiment_name}.h5")
+            try:
+                train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_weights_path,train_img_split, train_msk_split,val_img_split, val_msk_split)
+            except Exception as e:
+                print(f"Exception raised while training: {experiment_name}.\nThe error: {e}")
