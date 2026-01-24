@@ -5,7 +5,7 @@ import os
 import numpy as np
 from utils import ADAMLearningRateTracker
 import cloud_net_model
-from losses import jacc_coef, filtered_jaccard_loss_v1
+from losses import jacc_coef, filtered_jaccard_loss_v1, filtered_jaccard_loss_v1_no_weights, filtered_jaccard_loss_v1_no_exp, filtered_jaccard_loss_small_m
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 # from generators import mybatch_generator_train, mybatch_generator_validation
@@ -88,7 +88,7 @@ def train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_
         model.fit(
         mybatch_generator(list(zip(train_img_split, train_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TRAIN),
         steps_per_epoch=np.int32(np.ceil(len(train_img_split) / BATCH_SIZE)), epochs=first_layer_max_epochs, verbose=1,
-        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL),
+        validation_data=mybatch_generator(list(zip(val_img_split, val_msk_split)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_VAL, shuffle=False),
         validation_steps=np.int32(np.ceil(len(val_img_split) / BATCH_SIZE)),
         callbacks=[model_checkpoint, lr_reducer, ADAMLearningRateTracker(END_LEARNING_RATE), csv_first_layer_logger, tensorboard_callback])
         # 1. Unfreeze everything
@@ -132,12 +132,11 @@ if __name__ == "__main__":
     val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
 
     # Define your hyperparameter sets
-    losses = {"FJL": filtered_jaccard_loss_v1, "Jaccard": jacc_coef}
+    losses = {"FJL": filtered_jaccard_loss_v1,"FJL_small_m":filtered_jaccard_loss_small_m, "FJL_no_weights":filtered_jaccard_loss_v1_no_weights, "FJL_no_exp":filtered_jaccard_loss_v1_no_exp, "Jaccard": jacc_coef}
     # first_layer_epochs_options = [5, 15]
-    first_layer_epochs_options = [5, 15]
-
-    for loss_name, loss_fn in losses.items():
-        for first_layer_max_epochs in first_layer_epochs_options:
+    first_layer_epochs_options = [5, 10]
+    for first_layer_max_epochs in first_layer_epochs_options:
+        for loss_name, loss_fn in losses.items():
             experiment_name = f"data_cut_{loss_name}_first_layer_max_epochs_{first_layer_max_epochs}"
             # create folder in trained_models
             experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))

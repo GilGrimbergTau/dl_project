@@ -18,11 +18,10 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
     if gen_type != GEN_TEST and shuffle:
         random.shuffle(zip_list)
     counter = 0
-
+    
     while True:
-        if gen_type == GEN_TRAIN and shuffle:
-            random.shuffle(zip_list)
-
+        # if gen_type == GEN_TRAIN and shuffle:
+        #     random.shuffle(zip_list)
         batch_files = zip_list[batch_size * counter:batch_size * (counter + 1)]
         image_list = []
         mask_list = []
@@ -62,9 +61,12 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
 
             mask = mask[..., np.newaxis]
             mask /= 255
+            mask = (mask > 0.5).astype(np.float32)
             # image /= max_possible_input_value
             # image = percentile_stretch_16bit(image)
             image = match_to_cdf(image, cloud38_cdf)
+            image = image.astype(np.float32)
+            image /= max_possible_input_value
             image_list.append(image)
             mask_list.append(mask)
 
