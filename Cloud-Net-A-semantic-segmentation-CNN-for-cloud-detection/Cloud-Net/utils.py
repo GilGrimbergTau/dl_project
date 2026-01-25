@@ -384,6 +384,22 @@ def get_cloud38_cdf(folder_path="/opt/DL_project/cloud38_dataset/", cdf_filename
         print(f'cdf_path does not exist: {cdf_path}')
         exit(1)
  
+def get_cloud38_4_channels_cdfs(folder_path="/opt/DL_project/cloud38_dataset/", cdf_filenames=["cdf_red",
+                                                                                             "cdf_green",
+                                                                                             "cdf_blue",
+                                                                                             "cdf_nir"]):
+    cdfs = []
+    for cdf_filename in cdf_filenames:
+        cdf_path = os.path.join(folder_path, cdf_filename + ".npy")
+        if os.path.isfile(cdf_path):
+            cdf_normalized = np.load(cdf_path)
+            cdfs.append(cdf_normalized)
+        else:
+            print(f'cdf_path does not exist: {cdf_path}')
+            exit(1)
+
+    return cdfs
+
 def match_to_cdf(source_img, reference_cdf):
     # 1. Calculate source histogram and normalized CDF
     # We use 65536 bins for 16-bit depth
@@ -403,6 +419,13 @@ def match_to_cdf(source_img, reference_cdf):
    
     # 4. Reconstruct the image
     return matched_values[src_unique_indices].reshape(source_img.shape).astype(np.uint16)
+
+def match_to_4_channels_cdf(source_img, reference_cdfs):
+    # 1. Use list comprehension to handle matching
+    matched_channels = [match_to_cdf(source_img, ref_cdf) for ref_cdf in reference_cdfs]
+
+    # 2. Stack the list directly 
+    return np.stack(matched_channels, axis=-1)
 
 if __name__ == "__main__":
 

@@ -3,7 +3,7 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
-from utils import get_cloud38_cdf,match_to_cdf
+from utils import get_cloud38_cdf, get_cloud38_4_channels_cdfs, match_to_cdf, match_to_4_channels_cdf
 import cv2
 
 from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, FINE_TUNE_NUM_OF_CHANNELS
@@ -13,7 +13,14 @@ Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-pri
 
 
 def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=MAX_BIT):
-    cloud38_cdf = get_cloud38_cdf()
+    if num_of_channels == 4:
+        cdf = get_cloud38_4_channels_cdfs()
+    elif num_of_channels == 1:
+        cdf = get_cloud38_cdf()
+    else:
+        print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+        exit(1)
+    
     number_of_batches = np.ceil(len(zip_list) / batch_size)
     if gen_type != GEN_TEST and shuffle:
         random.shuffle(zip_list)
@@ -28,14 +35,14 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
 
         for file, mask in batch_files:
             image = cv2.imread(file,cv2.IMREAD_UNCHANGED)
-            if num_of_channels == 4:
-                image_red = image_green = image_blue = image_nir = image
-                image = np.stack((image_red, image_green, image_blue, image_nir), axis=-1)
-            elif num_of_channels == 1:
-                pass
-            else:
-                print(f"Got illegal number of channels: {num_of_channels}! Exiting")
-                exit(1)
+            # if num_of_channels == 4:
+            #     image_red = image_green = image_blue = image_nir = image
+            #     image = np.stack((image_red, image_green, image_blue, image_nir), axis=-1)
+            # elif num_of_channels == 1:
+            #     pass
+            # else:
+            #     print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+            #     exit(1)
             mask = cv2.imread(mask, cv2.IMREAD_UNCHANGED)
 
             image = resize(image, (img_rows, img_cols), preserve_range=True, mode='symmetric')
@@ -64,7 +71,13 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
             mask = (mask > 0.5).astype(np.float32)
             # image /= max_possible_input_value
             # image = percentile_stretch_16bit(image)
-            image = match_to_cdf(image, cloud38_cdf)
+            if num_of_channels == 4:
+                image = match_to_4_channels_cdf(image, cdf)
+            elif num_of_channels == 1:
+                image = match_to_cdf(image, cdf)
+            else:
+                print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+                exit(1)
             image = image.astype(np.float32)
             image /= max_possible_input_value
             image_list.append(image)

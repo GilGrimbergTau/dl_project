@@ -44,7 +44,7 @@ def train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_
         tf.metrics.Precision(name='precision'),
         tf.metrics.Recall(name='recall')
     ]
-    if TRAIN_RESUME:
+    if TRAIN_RESUME and FINE_TUNE_NUM_OF_CHANNELS==1:
         model.load_weights(TRAINED_WEIGHTS_PATH)
         print("\nTraining resumed...")
         # 2. Extract weights from the original first conv layer
@@ -96,12 +96,16 @@ def train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_
             layer.trainable = True
 
         # 2. Re-compile
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
-        check_trainability(model)
+
+    elif TRAIN_RESUME and FINE_TUNE_NUM_OF_CHANNELS==4:
+        model.load_weights(TRAINED_WEIGHTS_PATH)
+        print("\nTraining resumed...")
+
     else:
         print("\nTraining started from scratch... ")
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
-        check_trainability(model)
+
+    model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
+    check_trainability(model)
     print("Experiment name: ", experiment_name)
     print("Input image size: ", (IN_ROWS, IN_COLS))
     print("Number of input spectral bands: ", FINE_TUNE_NUM_OF_CHANNELS)
@@ -138,6 +142,8 @@ if __name__ == "__main__":
     for first_layer_max_epochs in first_layer_epochs_options:
         for loss_name, loss_fn in losses.items():
             experiment_name = f"data_cut_{loss_name}_first_layer_max_epochs_{first_layer_max_epochs}"
+            print(f"Start training for experiment {experiment_name}:\n")
+
             # create folder in trained_models
             experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
             experiment_folder.mkdir(parents=True, exist_ok=True)
@@ -147,3 +153,5 @@ if __name__ == "__main__":
                 train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_weights_path,train_img_split, train_msk_split,val_img_split, val_msk_split)
             except Exception as e:
                 print(f"Exception raised while training: {experiment_name}.\nThe error: {e}")
+            
+            print(f"Training for experiment {experiment_name} is done.\n")
