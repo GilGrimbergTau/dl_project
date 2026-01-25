@@ -21,8 +21,8 @@ def get_masks(masks_path_list, batch_size, img_rows, img_cols):
     masks_list = []
     batch_files = masks_path_list[batch_size * counter:batch_size * (counter + 1)]    
     while (counter < number_of_batches):
-        for mask in batch_files:
-            mask = cv2.imread(mask, cv2.IMREAD_UNCHANGED)
+        for mask_path in batch_files:
+            mask = cv2.imread(mask_path, cv2.IMREAD_UNCHANGED)
             mask = resize(mask, (img_rows, img_cols), preserve_range=True, mode='symmetric')
             mask = mask[..., np.newaxis]
             mask /= 255
@@ -54,7 +54,7 @@ def prediction():
     # Convert lists to numpy arrays for easier handling
     y_true = get_masks(test_masks, BATCH_SIZE, IN_ROWS, IN_COLS)
     y_true = np.concatenate(y_true, axis=0)
-    
+
     imgs_mask_test = (imgs_mask_test > 0.5).astype(np.float32)
     y_pred = np.concatenate(imgs_mask_test, axis=0)
 

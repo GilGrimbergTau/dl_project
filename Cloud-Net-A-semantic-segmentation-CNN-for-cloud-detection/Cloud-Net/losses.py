@@ -13,6 +13,13 @@ def jacc_coef(y_true, y_pred):
 def inv_jacc_coef(y_true, y_pred):
     return jacc_coef(1.0 - y_true, 1.0 - y_pred)
 
+def jacc_bce_combined(y_true, y_pred, alpha = 0.5):
+    # Standard Binary Cross Entropy
+    bce = tf.keras.losses.BinaryCrossentropy()(y_true, y_pred)
+    jacc = jacc_coef(y_true, y_pred)
+
+    return alpha*bce + (1-alpha)*jacc
+
 # FJL Version 1: Multiplicative (Equation 6)
 # Penalizes the combination of foreground and background Jaccard indices.
 def filtered_jaccard_loss_v1(y_true, y_pred, k_g=1, k_j=1, m=1000, p_c=0.5):
