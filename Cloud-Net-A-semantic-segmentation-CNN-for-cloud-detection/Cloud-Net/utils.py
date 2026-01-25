@@ -2,7 +2,7 @@ import keras
 import keras.backend as K
 from tqdm import tqdm
 import os
-
+import matplotlib.pyplot as plt
 import shutil
 import re
 from pathlib import Path
@@ -13,6 +13,7 @@ from raw_dataset_info import Dataset # The class definition
 import json
 from PIL import Image
 from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL
+import cv2
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
     """It prints out the last used learning rate after each epoch (useful for resuming a training)
@@ -374,6 +375,54 @@ def sort_dataset(source_dir, target_dir, test_list_file, val_list_file):
     print(f"Process complete. Total paired files copied: {current_index}")
 
 
+def analyze_mask_folder(folder_path):
+    # Initialize counters
+    total_images = 0
+    total_zero_pixels = 0
+    total_nonzero_pixels = 0
+    
+    # Supported image extensions
+    valid_extensions = ('.tif', '.tiff', '.png', '.jpg', '.jpeg', '.bmp')
+
+    # Iterate through folder
+    files = [f for f in os.listdir(folder_path) if f.lower().endswith(valid_extensions)]
+    total_images = len(files)
+
+    if total_images == 0:
+        print(f"No valid mask files found in {folder_path}")
+        return
+
+    for filename in files:
+        file_path = os.path.join(folder_path, filename)
+        
+        # Load image (IMREAD_UNCHANGED is crucial for 16-bit or special masks)
+        mask = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+        
+        if mask is None:
+            continue
+
+        # Count pixels
+        # np.count_nonzero is very fast
+        nonzero_count = np.count_nonzero(mask)
+        zero_count = mask.size - nonzero_count
+        
+        total_nonzero_pixels += nonzero_count
+        total_zero_pixels += zero_count
+
+    # Calculate percentages
+    total_pixels = total_zero_pixels + total_nonzero_pixels
+    percent_zero = (total_zero_pixels / total_pixels) * 100 if total_pixels > 0 else 0
+    percent_nonzero = (total_nonzero_pixels / total_pixels) * 100 if total_pixels > 0 else 0
+
+    # Print Results
+    print(f"--- Analysis Results for: {folder_path} ---")
+    print(f"Total number of masks:      {total_images}")
+    print(f"Total pixels processed:      {total_pixels:,}")
+    print("-" * 40)
+    print(f"Pixels with value 0:         {total_zero_pixels:,} ({percent_zero:.2f}%)")
+    print(f"Pixels with value > 0:       {total_nonzero_pixels:,} ({percent_nonzero:.2f}%)")
+    print("-" * 40)
+#####################################
 
 def get_cloud38_cdf(folder_path="/opt/DL_project/cloud38_dataset/", cdf_filename="cloud38_test_cdf_normalized"):
     cdf_path = os.path.join(folder_path, cdf_filename + ".npy")
@@ -427,6 +476,30 @@ def match_to_4_channels_cdf(source_img, reference_cdfs):
     # 2. Stack the list directly 
     return np.stack(matched_channels, axis=-1)
 
+def save_history_plots(history, output_path):
+    # 1. Identify unique metrics (removing the 'val_' prefix)
+    # This gives us ['loss', 'accuracy', 'recall', 'precision', ...]
+    metrics = [key for key in history.history.keys() if not key.startswith('val_')]
+ 
+    for metric in metrics:
+        plt.figure(figsize=(8, 5))
+        # Plot training metric
+        plt.plot(history.history[metric], label=f'Train {metric.capitalize()}')
+        # Plot validation metric if it exists
+        val_key = f'val_{metric}'
+        if val_key in history.history:
+            plt.plot(history.history[val_key], label=f'Val {metric.capitalize()}')
+        plt.title(f'Model {metric.capitalize()} over Epochs')
+        plt.xlabel('Epochs')
+        plt.ylabel(metric.capitalize())
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        # Save as an image file (e.g., "metric_recall.png")
+        filename = os.path.join(output_path,f"metric_{metric}.png")
+        plt.savefig(filename)
+        plt.close() # Important: close the figure to free up memory
+        print(f"Saved: {filename}")
+
 if __name__ == "__main__":
 
     # # Get all members of the module
@@ -440,3 +513,4 @@ if __name__ == "__main__":
     # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
     # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
     # sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
+    # analyze_mask_folder(r'/opt/DL_project/sorted_dataset_cut/val/masks/')
