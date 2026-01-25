@@ -12,7 +12,7 @@ from skimage.transform import resize
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST
-
+import datetime
 import cv2
 
 def get_masks(masks_path_list, batch_size, img_rows, img_cols):
@@ -71,8 +71,8 @@ def prediction():
     if not os.path.exists(PRED_FOLDER):
         os.mkdir(PRED_FOLDER)
     print("Saving metrics to file (accuracy, precision, recall, etc.)\n\n")
-    with open(os.path.join(PRED_FOLDER,"test_performance.txt")) as metrics_file:
-        metrics_file.write(f'Metric of test predictions for model {experiment_name}:\n\n')
+    with open(os.path.join(PRED_FOLDER,f'test_performance_{datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}.txt') ,'w') as metrics_file:
+        metrics_file.write(f'Metrics of test predictions for model {experiment_name}:\n\n')
         metrics_file.write(f'Accuracy = {accuracy}\n')
         metrics_file.write(f'Precision = {precision}\n')
         metrics_file.write(f'Recall = {recall}\n')
@@ -84,18 +84,17 @@ def prediction():
         cv2.imwrite(os.path.join(PRED_FOLDER, image_name + "_pred.tif"), pred_image)
 
 
-
-
-# experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
-experiment_name = "data_cut_FJL_first_layer_max_epochs_5"
-PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
-weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
-
-
-# getting input images names
-# test_patches_csv_name = 'test_patches_38-cloud.csv'
-# df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
 dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
-test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
 
-prediction()
+for experiment_name in ["data_cut_FJL_first_layer_max_epochs_5", "data_cut_FJL_no_exp_first_layer_max_epochs_5", "data_cut_FJL_no_weights_first_layer_max_epochs_5", "data_cut_FJL_small_m_first_layer_max_epochs_5", "data_cut_Jaccard_first_layer_max_epochs_5"]:
+    # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
+    PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
+    weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
+
+
+    # getting input images names
+    # test_patches_csv_name = 'test_patches_38-cloud.csv'
+    # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
+    test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
+
+    prediction()
