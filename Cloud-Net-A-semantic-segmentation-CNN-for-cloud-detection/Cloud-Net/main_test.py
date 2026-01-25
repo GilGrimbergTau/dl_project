@@ -8,10 +8,31 @@ from generators import mybatch_generator
 import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
+from skimage.transform import resize
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
 from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST
 
 import cv2
+
+def get_masks(masks_path_list, batch_size, img_rows, img_cols):
+    counter = 0
+    number_of_batches = np.ceil(len(masks_path_list) / batch_size)
+    masks_list = []
+    batch_files = masks_path_list[batch_size * counter:batch_size * (counter + 1)]    
+    while (counter < number_of_batches):
+        for mask in batch_files:
+            mask = cv2.imread(mask, cv2.IMREAD_UNCHANGED)
+            mask = resize(mask, (img_rows, img_cols), preserve_range=True, mode='symmetric')
+            mask = mask[..., np.newaxis]
+            mask /= 255
+            mask = (mask > 0.5).astype(np.float32)
+            masks_list.append(mask)
+        counter += 1
+        batch_files = masks_path_list[batch_size * counter:batch_size * (counter + 1)]    
+
+    masks_list = np.array(masks_list)
+    return masks_list
 
 def prediction():
     model = cloud_net_model.model_arch(input_rows=IN_ROWS,
@@ -29,12 +50,34 @@ def prediction():
     imgs_mask_test = model.predict(
         mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False),
         steps=np.int32(np.ceil(len(test_imgs) / BATCH_SIZE)))
+    # model.evaluate(mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False))
+    # Convert lists to numpy arrays for easier handling
+    y_true = get_masks(test_masks, BATCH_SIZE, IN_ROWS, IN_COLS)
+    y_true = np.concatenate(y_true, axis=0)
+    
+    imgs_mask_test = (imgs_mask_test > 0.5).astype(np.float32)
+    y_pred = np.concatenate(imgs_mask_test, axis=0)
 
-    print("Saving predicted cloud masks on disk... \n")
+    # Flatten the arrays to compute pixel-wise metrics
+    y_true_flat = y_true.flatten()
+    y_pred_flat = y_pred.flatten()
+
+    # Compute Precision, Recall, and F1-Score
+    precision = precision_score(y_true_flat, y_pred_flat)
+    recall = recall_score(y_true_flat, y_pred_flat)
+    accuracy = accuracy_score(y_true_flat, y_pred_flat)
+    f1 = f1_score(y_true_flat, y_pred_flat)
 
     if not os.path.exists(PRED_FOLDER):
         os.mkdir(PRED_FOLDER)
-
+    print("Saving metrics to file (accuracy, precision, recall, etc.)\n\n")
+    with open(os.path.join(PRED_FOLDER,"test_performance.txt")) as metrics_file:
+        metrics_file.write(f'Metric of test predictions for model {experiment_name}:\n\n')
+        metrics_file.write(f'Accuracy = {accuracy}\n')
+        metrics_file.write(f'Precision = {precision}\n')
+        metrics_file.write(f'Recall = {recall}\n')
+        metrics_file.write(f'F1 score = {f1}\n')
+    print("Saving predicted cloud masks on disk... \n")
     for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
         pred_image = (pred_image[:, :, 0]).astype(np.float32)
         image_name = os.path.basename(gt_mask).split(".")[0]
@@ -44,7 +87,7 @@ def prediction():
 
 
 # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
-experiment_name = "first_time_full_data_cut"
+experiment_name = "data_cut_FJL_first_layer_max_epochs_5"
 PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
 weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
 
