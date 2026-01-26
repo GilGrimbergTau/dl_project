@@ -16,7 +16,7 @@ from keras import models,layers
 import tensorflow as tf
 from pathlib import Path
 import datetime
-
+import sys
 
 from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, TRAINED_WEIGHTS_PATH, TRAIN_RESUME, EARLY_STOP_PATIENCE
 
@@ -136,24 +136,30 @@ if __name__ == "__main__":
     dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
     train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
     val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
-
     # Define your hyperparameter sets
-    losses = {"Jaccard_Bce_Combined":jacc_bce_combined,"Jaccard": jacc_coef,"FJL": filtered_jaccard_loss_v1, "FJL_no_exp":filtered_jaccard_loss_v1_no_exp}
+    losses = {"Jaccard_Bce_Combined_0_3":jacc_bce_combined,"Jaccard": jacc_coef}
+    if len(sys.argv) > 1:
+        loss_name = sys.argv[1]
+        loss_fn = losses[loss_name]
+    else:
+        print("no loss names where given!")
+        exit(1)
     # first_layer_epochs_options = [5, 15]
     first_layer_epochs_options = ["4_ch"]
     for first_layer_max_epochs in first_layer_epochs_options:
-        for loss_name, loss_fn in losses.items():
-            experiment_name = f"data_cut_{loss_name}_first_layer_max_epochs_{first_layer_max_epochs}"
-            print(f"Start training for experiment {experiment_name}:\n")
+        experiment_name = f"data_cut_{loss_name}_first_layer_max_epochs_{first_layer_max_epochs}"
+        print(f"Start training for experiment {experiment_name}:\n")
 
-            # create folder in trained_models
-            experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
-            experiment_folder.mkdir(parents=True, exist_ok=True)
+        # create folder in trained_models
+        experiment_folder = Path(os.path.join(GLOBAL_PATH,"trained_models",experiment_name))
+        experiment_folder.mkdir(parents=True, exist_ok=True)
 
-            new_weights_path = os.path.join(experiment_folder._str,f"{experiment_name}.h5")
-            try:
-                train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_weights_path,train_img_split, train_msk_split,val_img_split, val_msk_split)
-            except Exception as e:
-                print(f"Exception raised while training: {experiment_name}.\nThe error: {e}")
-            
-            print(f"Training for experiment {experiment_name} is done.\n")
+        new_weights_path = os.path.join(experiment_folder._str,f"{experiment_name}.h5")
+        try:
+            train(loss_fn, first_layer_max_epochs,experiment_folder,experiment_name,new_weights_path,train_img_split, train_msk_split,val_img_split, val_msk_split)
+        except Exception as e:
+            print(f"Exception raised while training: {experiment_name}.\nThe error: {e}")
+            with open(os.path.join(experiment_folder,"crash_log.txt"), 'w') as crash_log:
+                crash_log.write(f'exception raised while training. the error:{e}')
+        
+        print(f"Training for experiment {experiment_name} is done.\n")

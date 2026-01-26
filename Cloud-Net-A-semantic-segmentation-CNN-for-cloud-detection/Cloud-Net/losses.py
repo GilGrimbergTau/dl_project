@@ -13,7 +13,7 @@ def jacc_coef(y_true, y_pred):
 def inv_jacc_coef(y_true, y_pred):
     return jacc_coef(1.0 - y_true, 1.0 - y_pred)
 
-def jacc_bce_combined(y_true, y_pred, alpha = 0.5):
+def jacc_bce_combined(y_true, y_pred, alpha = 0.3):
     # Standard Binary Cross Entropy
     bce = tf.keras.losses.BinaryCrossentropy()(y_true, y_pred)
     jacc = jacc_coef(y_true, y_pred)
