@@ -3,23 +3,24 @@ from skimage.io import imread
 from skimage.transform import resize
 import numpy as np
 from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_clk_img_and_msk, zoom_img_and_msk
-from utils import get_cloud38_cdf, get_cloud38_4_channels_cdfs, match_to_cdf, match_to_4_channels_cdf
+from preprocess import get_cloud38_cdf, get_cloud38_4_channels_cdfs,match_histogram_preprocess, per_image_normalize
 import cv2
 
-from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, FINE_TUNE_NUM_OF_CHANNELS
+from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, FINE_TUNE_NUM_OF_CHANNELS, PREPROC_NORM, PREPROC_MATCH_CDF
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
 """
 
 
-def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=MAX_BIT):
-    if num_of_channels == 4:
-        cdf = get_cloud38_4_channels_cdfs()
-    elif num_of_channels == 1:
-        cdf = get_cloud38_cdf()
-    else:
-        print(f"Got illegal number of channels: {num_of_channels}! Exiting")
-        exit(1)
+def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, gen_type=GEN_TRAIN,shuffle=True, max_possible_input_value=MAX_BIT, preprocess_type=PREPROC_MATCH_CDF):
+    if preprocess_type == PREPROC_MATCH_CDF:
+        if num_of_channels == 4:
+            cdf = get_cloud38_4_channels_cdfs()
+        elif num_of_channels == 1:
+            cdf = get_cloud38_cdf()
+        else:
+            print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+            exit(1)
     
     number_of_batches = np.ceil(len(zip_list) / batch_size)
     if gen_type != GEN_TEST and shuffle:
@@ -71,15 +72,13 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
             mask = (mask > 0.5).astype(np.float32)
             # image /= max_possible_input_value
             # image = percentile_stretch_16bit(image)
-            if num_of_channels == 4:
-                image = match_to_4_channels_cdf(image, cdf)
-            elif num_of_channels == 1:
-                image = match_to_cdf(image, cdf)
+            if preprocess_type == PREPROC_MATCH_CDF:
+                image = match_histogram_preprocess(num_of_channels, max_possible_input_value, cdf, image)
+            elif preprocess_type == PREPROC_NORM:
+                image = per_image_normalize(image, num_of_channels)
             else:
-                print(f"Got illegal number of channels: {num_of_channels}! Exiting")
+                print(f'unknown type of preprocessing was given: {preprocess_type}')
                 exit(1)
-            image = image.astype(np.float32)
-            image /= max_possible_input_value
             image_list.append(image)
             mask_list.append(mask)
 

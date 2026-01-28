@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the loss functions
-LOSS_FUNCTIONS=("Jaccard_Bce_Combined_0_3" "Jaccard")
+LOSS_FUNCTIONS=("Jaccard")
 
 # activate venv
 source .venv/bin/activate
@@ -13,7 +13,7 @@ do
     echo "================================================"
 
     # Run python and pass the LOSS variable as the first argument
-    python ./Cloud-Net-A-semantic-segmentation-CNN-for-cloud-detection/Cloud-Net/main_train.py "$LOSS"
+    python ./Cloud-Net-A-semantic-segmentation-CNN-for-cloud-detection/Cloud-Net/main_train.py "$LOSS" "preprocess_standardizations"
 
     # Optional: Small delay to ensure hardware/drivers reset
     sleep 3
