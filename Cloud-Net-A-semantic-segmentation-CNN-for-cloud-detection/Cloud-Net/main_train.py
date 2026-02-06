@@ -18,7 +18,7 @@ from pathlib import Path
 import datetime
 import sys
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, TRAINED_WEIGHTS_PATH, TRAIN_RESUME, EARLY_STOP_PATIENCE, PREPROC_MATCH_CDF, PREPROC_NORM
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, PRETRAINED_NUM_OF_CHANNELS,FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, STARTING_LAERNING_RATE, END_LEARNING_RATE, MAX_NUM_OF_EPOCHS, PATIENCE, DACEY_FACTOR, GLOBAL_PATH, GEN_TRAIN, GEN_VAL, TRAINED_WEIGHTS_PATH, TRAIN_RESUME, EARLY_STOP_PATIENCE, PREPROC_MATCH_CDF, PREPROC_PER_IMAGE_NORM
 
 
 def check_trainability(model):
@@ -78,7 +78,7 @@ def train(loss_fn,experiment_folder,experiment_name,new_weights_path,train_img_s
         # index 0 is Input, index 1 is the first Conv2D
         model.layers[1].trainable = True
         # 3. Compile the model (Crucial: changes to 'trainable' require re-compiling)
-        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
+        model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE, amsgrad=True), loss=loss_fn, metrics=metrics)
         check_trainability(model)
         # Create a log directory
         first_layer_logdir = os.path.join(experiment_folder,"logs/first_layer_logs/","loss_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
@@ -105,7 +105,7 @@ def train(loss_fn,experiment_folder,experiment_name,new_weights_path,train_img_s
     else:
         print("\nTraining started from scratch... ")
 
-    model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE), loss=loss_fn, metrics=metrics)
+    model.compile(optimizer=Adam(learning_rate=STARTING_LAERNING_RATE, amsgrad=True), loss=loss_fn, metrics=metrics)
     check_trainability(model)
     print("Experiment name: ", experiment_name)
     print("Input image size: ", (IN_ROWS, IN_COLS))
@@ -137,16 +137,19 @@ if __name__ == "__main__":
     train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
     val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
     # Define your hyperparameter sets
-    losses = {"Jaccard_Bce_Combined_0_3":jacc_bce_combined,"Jaccard": jacc_coef}
+    losses = {"Jaccard_Bce_Combined_0_1":jacc_bce_combined,"Jaccard": jacc_coef}
     if len(sys.argv) > 1:
         loss_name = sys.argv[1]
         loss_fn = losses[loss_name]
         input_preprocess_type = sys.argv[2]
     else:
         print("no loss names where given!")
-        exit(1)
+        loss_name = "Jaccard"
+        loss_fn = losses[loss_name]
+        input_preprocess_type = PREPROC_PER_IMAGE_NORM
 
-    experiment_name = f"data_cut_loss_{loss_name}_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch"
+
+    experiment_name = f"data_cut_loss_{loss_name}_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch" + ("_pretrained" if TRAIN_RESUME else "_from_scratch")
     print(f"Start training for experiment {experiment_name}:\n")
 
     # create folder in trained_models

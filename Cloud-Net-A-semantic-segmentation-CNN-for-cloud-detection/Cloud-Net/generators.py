@@ -6,7 +6,7 @@ from augmentation import flipping_img_and_msk, rotate_cclk_img_and_msk, rotate_c
 from preprocess import get_cloud38_cdf, get_cloud38_4_channels_cdfs,match_histogram_preprocess, per_image_normalize
 import cv2
 
-from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, FINE_TUNE_NUM_OF_CHANNELS, PREPROC_NORM, PREPROC_MATCH_CDF
+from global_params import GEN_TRAIN, GEN_VAL, GEN_TEST, MAX_BIT, FINE_TUNE_NUM_OF_CHANNELS, PREPROC_PER_IMAGE_NORM, PREPROC_MATCH_CDF, PREPROC_NONE
 """
 Some lines borrowed from https://www.kaggle.com/petrosgk/keras-vgg19-0-93028-private-lb
 """
@@ -74,8 +74,10 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
             # image = percentile_stretch_16bit(image)
             if preprocess_type == PREPROC_MATCH_CDF:
                 image = match_histogram_preprocess(num_of_channels, max_possible_input_value, cdf, image)
-            elif preprocess_type == PREPROC_NORM:
+            elif preprocess_type == PREPROC_PER_IMAGE_NORM:
                 image = per_image_normalize(image, num_of_channels)
+            elif preprocess_type == PREPROC_NONE:
+                pass
             else:
                 print(f'unknown type of preprocessing was given: {preprocess_type}')
                 exit(1)
@@ -133,17 +135,6 @@ def mybatch_generator(zip_list, img_rows, img_cols, batch_size, num_of_channels=
 #         if counter == number_of_batches:
 #             counter = 0
 
-
-def percentile_stretch_16bit(img, p_low=2, p_high=98):
-    img = img.astype(np.float32)
-
-    lo, hi = np.percentile(img, (p_low, p_high))
-    img = np.clip(img, lo, hi)
-
-    stretched = (img - lo) / (hi - lo)
-    stretched = stretched * 65535.0
-
-    return stretched.astype(np.uint16)
 
 # def mybatch_generator_prediction(tstfiles, img_rows, img_cols, batch_size, max_possible_input_value=MAX_BIT):
 #     number_of_batches = np.ceil(len(tstfiles) / batch_size)

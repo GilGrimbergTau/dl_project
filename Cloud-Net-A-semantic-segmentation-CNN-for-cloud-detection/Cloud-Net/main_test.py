@@ -9,9 +9,9 @@ import tifffile as tiff
 import pandas as pd
 from utils import get_input_image_names
 from skimage.transform import resize
-from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, jaccard_score
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST, PREPROC_MATCH_CDF, PREPROC_NORM
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST, PREPROC_MATCH_CDF, PREPROC_PER_IMAGE_NORM
 import datetime
 import cv2
 
@@ -67,6 +67,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     recall = recall_score(y_true_flat, y_pred_flat)
     accuracy = accuracy_score(y_true_flat, y_pred_flat)
     f1 = f1_score(y_true_flat, y_pred_flat)
+    jaccard = jaccard_score(y_true_flat, y_pred_flat)
 
     if not os.path.exists(PRED_FOLDER):
         os.mkdir(PRED_FOLDER)
@@ -77,6 +78,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
         metrics_file.write(f'Precision = {precision}\n')
         metrics_file.write(f'Recall = {recall}\n')
         metrics_file.write(f'F1 score = {f1}\n')
+        metrics_file.write(f'Jaccard score = {jaccard}\n')
     print("Saving predicted cloud masks on disk... \n")
     for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
         pred_image = (pred_image[:, :, 0]).astype(np.float32)

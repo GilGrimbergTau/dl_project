@@ -26,8 +26,9 @@ GEN_TRAIN = "gen_train"
 GEN_VAL = "gen_val"
 GEN_TEST = "gen_test"
 
-PREPROC_NORM = "preprocess_standardizations"
+PREPROC_PER_IMAGE_NORM = "preprocess_standardizations"
 PREPROC_MATCH_CDF = "preprocess_match_cdf"
+PREPROC_NONE = "preprocess_None"
 # TOTAL_SUM_OF_CLOUDS_PIXELS = 93314867
 # TOATL_SUM_OF_BACKGROUND_PIXELS = 1612124365
 # TOTAL_SUM_OF_PIXELS = TOTAL_SUM_OF_CLOUDS_PIXELS + TOATL_SUM_OF_BACKGROUND_PIXELS
