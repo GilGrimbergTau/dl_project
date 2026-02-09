@@ -13,6 +13,14 @@ def percentile_stretch_16bit(img, p_low=2, p_high=98):
 
     return stretched.astype(np.uint16)
 
+def percentile_clip(img, p_low=2, p_high=98):
+    img = img.astype(np.float32)
+
+    lo, hi = np.percentile(img, (p_low, p_high))
+    img = np.clip(img, lo, hi)
+
+    return img
+
 ######### CDF matching approach #########
 def get_cloud38_cdf(folder_path="/opt/DL_project/cloud38_dataset/", cdf_filename="cloud38_test_cdf_normalized"):
     cdf_path = os.path.join(folder_path, cdf_filename + ".npy")
@@ -69,7 +77,7 @@ def match_to_4_channels_cdf(source_img, reference_cdfs):
 
 def match_histogram_preprocess(num_of_channels, max_possible_input_value, cdf, image):
     # clip outliers
-    image = percentile_stretch_16bit(image)
+    image = percentile_clip(image)
     
     if num_of_channels == 4:
         image = match_to_4_channels_cdf(image, cdf)
