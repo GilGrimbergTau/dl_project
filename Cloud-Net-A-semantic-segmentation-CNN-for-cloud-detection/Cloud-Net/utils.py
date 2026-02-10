@@ -438,7 +438,7 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         true_mask = y_true_all[i].flatten()
         
         # Calculate Jaccard (IoU) for this specific frame
-        score = jaccard_score(true_mask, pred_mask)
+        score = jaccard_score(true_mask, pred_mask, zero_division=1)
         iou_scores.append((i, score))
     
     # Sort by score ascending (lowest first)
@@ -453,28 +453,26 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
     #     print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
         
     # 2. Plotting
-    plt.figure(figsize=(15, 5 * n))
-    for i, idx, score in enumerate(worst_indices):
+    for i, (idx, score) in enumerate(worst_indices):
         # Image
-        plt.subplot(n, 3, i * 3 + 1)
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
         orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
-        plt.imshow(orig_image, cmap="gray")
-        plt.title(f"Index: {idx}\nFile: {orig_images_paths[idx].split('/')[-1]}")
-        plt.axis('off')
+        axes[0].imshow(orig_image, cmap="gray")
+        axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
+        axes[0].axis('off')
         
         # Ground Truth
-        plt.subplot(n, 3, i * 3 + 2)
-        plt.imshow(y_true_all[idx].squeeze(), cmap='gray')
-        plt.title("Ground Truth")
-        plt.axis('off')
+        axes[1].imshow(y_true_all[idx].squeeze(), cmap='gray')
+        axes[1].set_title("Ground Truth")
+        axes[1].axis('off')
         
         # Prediction
-        plt.subplot(n, 3, i * 3 + 3)
-        plt.imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
-        plt.title(f"Prediction (Jaccard: {iou_scores[idx]:.4f})")
-        plt.axis('off')
+        axes[2].imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
+        axes[2].set_title(f"Prediction (Jaccard: {iou_scores[idx]})")
+        axes[2].axis('off')
 
-        plt.savefig(os.path.join(folder,f'pred_{i}'))
+        plt.tight_layout()
+        plt.savefig(os.path.join(folder,f'pred_{i}'),dpi=200, bbox_inches='tight')
         
     # plt.tight_layout()
     # plt.show()

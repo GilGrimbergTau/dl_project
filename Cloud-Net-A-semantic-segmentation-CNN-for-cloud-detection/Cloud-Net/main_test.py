@@ -72,7 +72,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     specificity = recall_score(y_true_flat, y_pred_flat, pos_label=0)
     accuracy = accuracy_score(y_true_flat, y_pred_flat)
     f1 = f1_score(y_true_flat, y_pred_flat)
-    jaccard = jaccard_score(y_true_flat, y_pred_flat)
+    jaccard = jaccard_score(y_true_flat, y_pred_flat, zero_division=1)
 
     print("Saving metrics to file (accuracy, precision, recall, etc.)\n\n")
     with open(os.path.join(PRED_FOLDER,f'test_performance_{datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}.txt') ,'w') as metrics_file:
@@ -103,4 +103,4 @@ for experiment_name in ["data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_match
     # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
     test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
 
-    prediction(preprocess=PREPROC_MATCH_CDF)
+    prediction(preprocess=PREPROC_PER_IMAGE_NORM)
