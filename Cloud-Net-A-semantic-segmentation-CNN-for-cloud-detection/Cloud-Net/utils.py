@@ -1,5 +1,6 @@
 import keras
 import keras.backend as K
+from sklearn.metrics import jaccard_score
 from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
@@ -422,6 +423,55 @@ def analyze_mask_folder(folder_path):
     print(f"Pixels with value 0:         {total_zero_pixels:,} ({percent_zero:.2f}%)")
     print(f"Pixels with value > 0:       {total_nonzero_pixels:,} ({percent_nonzero:.2f}%)")
     print("-" * 40)
+
+
+def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, n=10):
+    """
+    y_true_all: (N, H, W, 1) ground truth masks
+    y_pred_all: (N, H, W, 1) model probability outputs
+    """
+    iou_scores = []
+    
+    for i in range(len(y_true_all)):
+        # Binarize prediction (using 0.5 threshold)
+        pred_mask = y_pred_all[i].flatten()
+        true_mask = y_true_all[i].flatten()
+        
+        # Calculate Jaccard (IoU) for this specific frame
+        score = jaccard_score(true_mask, pred_mask)
+        iou_scores.append((i, score))
+    
+    # Sort by score ascending (lowest first)
+    worst_indices = sorted(iou_scores, key=lambda x: x[1])[:n]
+    
+    print(f"Top {n} Worst Predictions (by Jaccard Score):")
+    for idx, score in worst_indices:
+        print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
+        
+    # 2. Plotting
+    plt.figure(figsize=(15, 5 * n))
+    for idx, score in worst_indices:
+        # Image
+        plt.subplot(n, 3, i * 3 + 1)
+        orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
+        plt.imshow(orig_image, cmap="gray")
+        plt.title(f"Index: {idx}\nFile: {orig_images_paths[idx].split('/')[-1]}")
+        plt.axis('off')
+        
+        # Ground Truth
+        plt.subplot(n, 3, i * 3 + 2)
+        plt.imshow(y_true_all[idx].squeeze(), cmap='gray')
+        plt.title("Ground Truth")
+        plt.axis('off')
+        
+        # Prediction
+        plt.subplot(n, 3, i * 3 + 3)
+        plt.imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
+        plt.title(f"Prediction (Jaccard: {iou_scores[idx]:.4f})")
+        plt.axis('off')
+        
+    plt.tight_layout()
+    plt.show()
 #####################################
 
 def save_history_plots(history, output_path):

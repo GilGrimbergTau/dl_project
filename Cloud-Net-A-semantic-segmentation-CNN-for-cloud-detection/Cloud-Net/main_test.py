@@ -7,7 +7,7 @@ import cloud_net_model
 from generators import mybatch_generator
 import tifffile as tiff
 import pandas as pd
-from utils import get_input_image_names
+from utils import get_input_image_names, find_worst_predictions
 from skimage.transform import resize
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, jaccard_score
 
@@ -58,6 +58,9 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     imgs_mask_test = (imgs_mask_test > 0.5).astype(np.float32)
     y_pred = np.concatenate(imgs_mask_test, axis=0)
 
+    # Find worst predictions
+    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,10)
+    
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
     y_pred_flat = y_pred.flatten()
