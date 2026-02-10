@@ -50,6 +50,9 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     predicted_masks = model.predict(
         mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False, preprocess_type=preprocess),
         steps=np.int32(np.ceil(len(test_imgs) / BATCH_SIZE)))
+    
+    if not os.path.exists(PRED_FOLDER):
+        os.mkdir(PRED_FOLDER)
     # model.evaluate(mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False))
     # Convert lists to numpy arrays for easier handling
     y_true = get_masks(test_masks, BATCH_SIZE, IN_ROWS, IN_COLS)
@@ -57,7 +60,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     y_pred = (predicted_masks > 0.5).astype(np.float32)
 
     # Find worst predictions
-    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,10)
+    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,10)
     
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
@@ -71,8 +74,6 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     f1 = f1_score(y_true_flat, y_pred_flat)
     jaccard = jaccard_score(y_true_flat, y_pred_flat)
 
-    if not os.path.exists(PRED_FOLDER):
-        os.mkdir(PRED_FOLDER)
     print("Saving metrics to file (accuracy, precision, recall, etc.)\n\n")
     with open(os.path.join(PRED_FOLDER,f'test_performance_{datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S")}.txt') ,'w') as metrics_file:
         metrics_file.write(f'Metrics of test predictions for model {experiment_name}:\n\n')

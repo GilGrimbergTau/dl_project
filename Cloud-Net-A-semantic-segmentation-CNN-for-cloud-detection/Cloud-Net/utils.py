@@ -425,7 +425,7 @@ def analyze_mask_folder(folder_path):
     print("-" * 40)
 
 
-def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, n=10):
+def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, n=10):
     """
     y_true_all: (N, H, W, 1) ground truth masks
     y_pred_all: (N, H, W, 1) model probability outputs
@@ -444,13 +444,17 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
     # Sort by score ascending (lowest first)
     worst_indices = sorted(iou_scores, key=lambda x: x[1])[:n]
     
-    print(f"Top {n} Worst Predictions (by Jaccard Score):")
-    for idx, score in worst_indices:
-        print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
+    # create new folder within the Prediction folder
+    folder = os.path.join(output_folder, "worst_predictions")
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+    # print(f"Top {n} Worst Predictions (by Jaccard Score):")
+    # for idx, score in worst_indices:
+    #     print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
         
     # 2. Plotting
     plt.figure(figsize=(15, 5 * n))
-    for idx, score in worst_indices:
+    for i, idx, score in enumerate(worst_indices):
         # Image
         plt.subplot(n, 3, i * 3 + 1)
         orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
@@ -469,9 +473,11 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         plt.imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
         plt.title(f"Prediction (Jaccard: {iou_scores[idx]:.4f})")
         plt.axis('off')
+
+        plt.savefig(os.path.join(folder,f'pred_{i}'))
         
-    plt.tight_layout()
-    plt.show()
+    # plt.tight_layout()
+    # plt.show()
 #####################################
 
 def save_history_plots(history, output_path):
