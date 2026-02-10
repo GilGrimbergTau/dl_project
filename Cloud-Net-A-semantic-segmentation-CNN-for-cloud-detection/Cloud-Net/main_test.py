@@ -65,6 +65,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     # Compute Precision, Recall, and F1-Score
     precision = precision_score(y_true_flat, y_pred_flat)
     recall = recall_score(y_true_flat, y_pred_flat)
+    specificity = recall_score(y_true_flat, y_pred_flat, pos_label=0)
     accuracy = accuracy_score(y_true_flat, y_pred_flat)
     f1 = f1_score(y_true_flat, y_pred_flat)
     jaccard = jaccard_score(y_true_flat, y_pred_flat)
@@ -77,6 +78,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
         metrics_file.write(f'Accuracy = {accuracy}\n')
         metrics_file.write(f'Precision = {precision}\n')
         metrics_file.write(f'Recall = {recall}\n')
+        metrics_file.write(f'Specificity = {specificity}\n')
         metrics_file.write(f'F1 score = {f1}\n')
         metrics_file.write(f'Jaccard score = {jaccard}\n')
     print("Saving predicted cloud masks on disk... \n")
@@ -88,7 +90,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
 
 dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
 
-for experiment_name in ["data_cut_Jaccard_first_layer_max_epochs_4_ch"]:
+for experiment_name in ["data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_match_cdf_4_ch_pretrained"]:
     # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
     PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
     weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
