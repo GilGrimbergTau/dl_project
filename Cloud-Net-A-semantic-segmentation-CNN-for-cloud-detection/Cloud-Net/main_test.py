@@ -47,16 +47,14 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     print("Number of input spectral bands = ", FINE_TUNE_NUM_OF_CHANNELS)
     print("Batch size = ", BATCH_SIZE)
 
-    imgs_mask_test = model.predict(
+    predicted_masks = model.predict(
         mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False, preprocess_type=preprocess),
         steps=np.int32(np.ceil(len(test_imgs) / BATCH_SIZE)))
     # model.evaluate(mybatch_generator(list(zip(test_imgs, test_masks)), IN_ROWS, IN_COLS, BATCH_SIZE,num_of_channels=FINE_TUNE_NUM_OF_CHANNELS, max_possible_input_value=MAX_BIT, gen_type=GEN_TEST, shuffle=False))
     # Convert lists to numpy arrays for easier handling
     y_true = get_masks(test_masks, BATCH_SIZE, IN_ROWS, IN_COLS)
-    y_true = np.concatenate(y_true, axis=0)
 
-    imgs_mask_test = (imgs_mask_test > 0.5).astype(np.float32)
-    y_pred = np.concatenate(imgs_mask_test, axis=0)
+    y_pred = (predicted_masks > 0.5).astype(np.float32)
 
     # Find worst predictions
     find_worst_predictions(y_true,y_pred,test_imgs,test_masks,10)
@@ -85,7 +83,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
         metrics_file.write(f'F1 score = {f1}\n')
         metrics_file.write(f'Jaccard score = {jaccard}\n')
     print("Saving predicted cloud masks on disk... \n")
-    for pred_image, gt_mask  in zip(imgs_mask_test, test_masks):
+    for pred_image, gt_mask  in zip(predicted_masks, test_masks):
         pred_image = (pred_image[:, :, 0]).astype(np.float32)
         image_name = os.path.basename(gt_mask).split(".")[0]
         cv2.imwrite(os.path.join(PRED_FOLDER, image_name + "_pred.tif"), pred_image)
