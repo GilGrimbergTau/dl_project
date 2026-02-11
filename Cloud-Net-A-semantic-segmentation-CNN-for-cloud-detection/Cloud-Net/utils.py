@@ -476,7 +476,7 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         
         # Prediction
         axes[2].imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
-        axes[2].set_title(f"Prediction (Jaccard: {scores[idx]})")
+        axes[2].set_title(f"Prediction ({metric}: {scores[idx]})")
         axes[2].axis('off')
 
         plt.tight_layout()
