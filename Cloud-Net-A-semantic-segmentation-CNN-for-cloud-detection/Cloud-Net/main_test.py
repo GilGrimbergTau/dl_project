@@ -60,7 +60,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     y_pred = (predicted_masks > 0.5).astype(np.float32)
 
     # Find worst predictions
-    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,10)
+    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metric="precision",n=10)
     
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
@@ -92,7 +92,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
 
 dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
 
-for experiment_name in ["data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_match_cdf_4_ch_pretrained"]:
+for experiment_name in ["data_cut_loss_Jaccard_preprocess_match_cdf_4_ch_pretrained"]:
     # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
     PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
     weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
@@ -103,4 +103,4 @@ for experiment_name in ["data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_match
     # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
     test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
 
-    prediction(preprocess=PREPROC_PER_IMAGE_NORM)
+    prediction(preprocess=PREPROC_MATCH_CDF)

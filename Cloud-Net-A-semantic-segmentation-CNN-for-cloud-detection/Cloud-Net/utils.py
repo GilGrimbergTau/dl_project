@@ -1,6 +1,6 @@
 import keras
 import keras.backend as K
-from sklearn.metrics import jaccard_score
+from sklearn.metrics import jaccard_score, precision_score, recall_score
 from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
@@ -425,12 +425,12 @@ def analyze_mask_folder(folder_path):
     print("-" * 40)
 
 
-def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, n=10):
+def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, metric="jaccard", n=10):
     """
     y_true_all: (N, H, W, 1) ground truth masks
     y_pred_all: (N, H, W, 1) model probability outputs
     """
-    iou_scores = []
+    scores = []
     
     for i in range(len(y_true_all)):
         # Binarize prediction (using 0.5 threshold)
@@ -438,14 +438,22 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         true_mask = y_true_all[i].flatten()
         
         # Calculate Jaccard (IoU) for this specific frame
-        score = jaccard_score(true_mask, pred_mask, zero_division=1)
-        iou_scores.append((i, score))
+        if metric == "jaccard":
+            score = jaccard_score(true_mask, pred_mask, zero_division=1)
+        elif metric == "precision":
+            score = precision_score(true_mask, pred_mask)
+        elif metric == "recall":
+            score = recall_score(true_mask, pred_mask)
+        else:
+            print(f'illegal metric given {metric}!')
+            exit(1)
+        scores.append((i, score))
     
     # Sort by score ascending (lowest first)
-    worst_indices = sorted(iou_scores, key=lambda x: x[1])[:n]
+    worst_indices = sorted(scores, key=lambda x: x[1])[:n]
     
     # create new folder within the Prediction folder
-    folder = os.path.join(output_folder, "worst_predictions")
+    folder = os.path.join(output_folder, "worst_predictions",f'{metric}')
     if not os.path.exists(folder):
         os.mkdir(folder)
     # print(f"Top {n} Worst Predictions (by Jaccard Score):")
@@ -468,7 +476,7 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         
         # Prediction
         axes[2].imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
-        axes[2].set_title(f"Prediction (Jaccard: {iou_scores[idx]})")
+        axes[2].set_title(f"Prediction (Jaccard: {scores[idx]})")
         axes[2].axis('off')
 
         plt.tight_layout()
