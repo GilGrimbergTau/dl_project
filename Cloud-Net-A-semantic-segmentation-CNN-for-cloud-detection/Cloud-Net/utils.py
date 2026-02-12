@@ -440,8 +440,12 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         # Calculate Jaccard (IoU) for this specific frame
         if metric == "jaccard":
             score = jaccard_score(true_mask, pred_mask, zero_division=1)
+            if score == 0.0:
+                continue
         elif metric == "precision":
             score = precision_score(true_mask, pred_mask)
+            if score == 0.0:
+                continue
         elif metric == "recall":
             score = recall_score(true_mask, pred_mask)
         else:
@@ -476,7 +480,7 @@ def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths,
         
         # Prediction
         axes[2].imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
-        axes[2].set_title(f"Prediction ({metric}: {scores[idx]})")
+        axes[2].set_title(f"Prediction ({metric}: {score})")
         axes[2].axis('off')
 
         plt.tight_layout()

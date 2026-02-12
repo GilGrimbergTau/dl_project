@@ -60,7 +60,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     y_pred = (predicted_masks > 0.5).astype(np.float32)
 
     # Find worst predictions
-    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metric="precision",n=10)
+    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metric="jaccard",n=20)
     
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
