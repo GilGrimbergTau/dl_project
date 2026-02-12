@@ -528,3 +528,14 @@ if __name__ == "__main__":
     # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
     # sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
     # analyze_mask_folder(r'/opt/DL_project/sorted_dataset_cut/val/masks/')
+    import tifffile
+    for img_path in ["/opt/DL_project/sorted_dataset_cut/train/images/014515_jack_SqrCnt_00065.tif", "/opt/DL_project/sorted_dataset_cut/train/images/015416_shayen3_2016_10_31_ILearly_morning_flightrecording_systemt01_4_jumps_way_0417.tif", "/opt/DL_project/sorted_dataset_cut/train/images/013514_F11_D12_m50_shchania_house28_090_30_18_47_14.tif", "/opt/DL_project/sorted_dataset_cut/train/images/014628_t05_m06a_ashdod_mask2_089_30_0601.tif", "/opt/DL_project/sorted_dataset_cut/train/images/014615_t05_m04a_hood_amit1_69_45_02c2.tif", "/opt/DL_project/sorted_dataset_cut/test/images/014806_t09_m19a_maapilim20_atl20_112_20_05b6.tif"]:
+        with tifffile.TiffFile(img_path) as tif:
+            # 1. Check Standard Tags
+            print(f'metadata of {img_path}')
+            for tag in tif.pages[0].tags:
+                print(f"{tag.name}: {tag.value}")
+
+            # 2. Check "Description" (Common for FLIR/DJI)
+            description = tif.pages[0].description
+            print(f"Description Field: {description}")
