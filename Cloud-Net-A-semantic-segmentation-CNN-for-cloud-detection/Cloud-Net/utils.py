@@ -376,6 +376,73 @@ def sort_dataset(source_dir, target_dir, test_list_file, val_list_file):
     print(f"Process complete. Total paired files copied: {current_index}")
 
 
+def normalize_dataset_polarity(root_path, scenario_txt, output_path):
+    # 1. Parse the scenario text file
+    with open(scenario_txt, 'r') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+    
+    black_hot_list = []
+    current_section = None
+    for line in lines:
+        if line.lower() == "#white-hot":
+            current_section = "white"
+        elif line.lower() == "#black-hot":
+            current_section = "black"
+        elif current_section == "black":
+            black_hot_list.append(line)
+
+    print(f"Loaded {len(black_hot_list)} Black-Hot scenarios.")
+
+    modified_images = []
+    root = Path(root_path)
+    output_root = Path(output_path)
+
+    # 2. Walk through the directory tree
+    # We only care about 'images' folders; masks usually don't need polarity flips
+    for subdir in ['train', 'val', 'test']:
+        img_dir = root / subdir / 'images'
+        mask_dir = root / subdir / 'masks'
+        
+        # Define output paths
+        out_img_dir = output_root / subdir / 'images'
+        out_mask_dir = output_root / subdir / 'masks'
+        
+        # Ensure output directories exist
+        out_img_dir.mkdir(parents=True, exist_ok=True)
+        out_mask_dir.mkdir(parents=True, exist_ok=True)
+
+        if not img_dir.exists():
+            continue
+
+        for img_file in img_dir.glob('*.tif'):
+            # Check if image name contains any black-hot scenario keywords
+            is_black_hot = any(scenario in img_file.name for scenario in black_hot_list)
+            
+            if is_black_hot:
+                # 16-bit inversion
+                 # Load the image
+                img_data = cv2.imread(str(img_file),cv2.IMREAD_UNCHANGED)
+                img_data = np.max(img_data) + np.min(img_data) - img_data
+                modified_images.append(str(img_file.relative_to(root)))
+                cv2.imwrite(str(out_img_dir / img_file.name), img_data.astype(np.uint16))
+            else:
+                # copy image as is
+                shutil.copy(str(img_file),str(out_img_dir / img_file.name))
+            
+            # Copy masks as-is (they are just labels 0/1)
+            # You can also use shutil.copy for speed here
+            mask_file = mask_dir / img_file.name
+            if mask_file.exists():
+                shutil.copy(str(mask_file),str(out_mask_dir / img_file.name))
+            else:
+                print(f'mask path could not be found! {str(mask_file)}')
+
+    # 3. Save the log of modified images
+    with open(output_root / 'modified_images_log.txt', 'w') as log_file:
+        log_file.write("\n".join(modified_images))
+    
+    print(f"Processing complete. {len(modified_images)} images were flipped.")
+
 def analyze_mask_folder(folder_path):
     # Initialize counters
     total_images = 0
@@ -528,14 +595,5 @@ if __name__ == "__main__":
     # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
     # sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
     # analyze_mask_folder(r'/opt/DL_project/sorted_dataset_cut/val/masks/')
-    import tifffile
-    for img_path in ["/opt/DL_project/sorted_dataset_cut/train/images/014515_jack_SqrCnt_00065.tif", "/opt/DL_project/sorted_dataset_cut/train/images/015416_shayen3_2016_10_31_ILearly_morning_flightrecording_systemt01_4_jumps_way_0417.tif", "/opt/DL_project/sorted_dataset_cut/train/images/013514_F11_D12_m50_shchania_house28_090_30_18_47_14.tif", "/opt/DL_project/sorted_dataset_cut/train/images/014628_t05_m06a_ashdod_mask2_089_30_0601.tif", "/opt/DL_project/sorted_dataset_cut/train/images/014615_t05_m04a_hood_amit1_69_45_02c2.tif", "/opt/DL_project/sorted_dataset_cut/test/images/014806_t09_m19a_maapilim20_atl20_112_20_05b6.tif"]:
-        with tifffile.TiffFile(img_path) as tif:
-            # 1. Check Standard Tags
-            print(f'metadata of {img_path}')
-            for tag in tif.pages[0].tags:
-                print(f"{tag.name}: {tag.value}")
 
-            # 2. Check "Description" (Common for FLIR/DJI)
-            description = tif.pages[0].description
-            print(f"Description Field: {description}")
+    # normalize_dataset_polarity("/opt/DL_project/sorted_dataset_cut/","/opt/DL_project/sensors_list.txt","/opt/DL_project/sorted_dataset_cut_same_polarity/")
