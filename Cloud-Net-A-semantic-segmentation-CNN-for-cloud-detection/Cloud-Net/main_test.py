@@ -7,7 +7,7 @@ import cloud_net_model
 from generators import mybatch_generator
 import tifffile as tiff
 import pandas as pd
-from utils import get_input_image_names, find_worst_predictions
+from utils import get_input_image_names, find_best_worst_predictions
 from skimage.transform import resize
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, jaccard_score
 
@@ -60,7 +60,7 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     y_pred = (predicted_masks > 0.5).astype(np.float32)
 
     # Find worst predictions
-    find_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metric="jaccard",n=20)
+    find_best_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metrics=["precision","jaccard"],n=50)
     
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
@@ -90,9 +90,9 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
         cv2.imwrite(os.path.join(PRED_FOLDER, image_name + "_pred.tif"), pred_image)
 
 
-dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
+dataset_folder = r"/opt/DL_project/sorted_dataset_cut_same_polarity/"
 
-for experiment_name in ["data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_standardizations_4_ch_pretrained"]:
+for experiment_name in ["data_cut_same_polarity_loss_Jaccard_Bce_Combined_0_1_preprocess_standardizations_4_ch_pretrained","data_cut_same_polarity_loss_Jaccard_preprocess_standardizations_4_ch_pretrained"]:
     # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
     PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
     weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')

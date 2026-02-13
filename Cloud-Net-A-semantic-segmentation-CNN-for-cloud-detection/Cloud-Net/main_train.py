@@ -133,7 +133,7 @@ def train(loss_fn,experiment_folder,experiment_name,new_weights_path,train_img_s
 if __name__ == "__main__":
 
     # getting input images names
-    dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
+    dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut_same_polarity')
     train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
     val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
     # Define your hyperparameter sets
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         input_preprocess_type = PREPROC_PER_IMAGE_NORM
 
 
-    experiment_name = f"data_cut_loss_{loss_name}_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch" + ("_pretrained" if TRAIN_RESUME else "_from_scratch")
+    experiment_name = f"data_cut_same_polarity_loss_{loss_name}_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch" + ("_pretrained" if TRAIN_RESUME else "_from_scratch")
     print(f"Start training for experiment {experiment_name}:\n")
 
     # create folder in trained_models

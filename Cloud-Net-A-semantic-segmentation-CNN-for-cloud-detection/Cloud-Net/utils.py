@@ -492,66 +492,79 @@ def analyze_mask_folder(folder_path):
     print("-" * 40)
 
 
-def find_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, metric="jaccard", n=10):
+def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, metrics=["jaccard"], n=10):
     """
     y_true_all: (N, H, W, 1) ground truth masks
     y_pred_all: (N, H, W, 1) model probability outputs
     """
-    scores = []
-    
-    for i in range(len(y_true_all)):
-        # Binarize prediction (using 0.5 threshold)
-        pred_mask = y_pred_all[i].flatten()
-        true_mask = y_true_all[i].flatten()
+    for metric in metrics:
+        scores = []
         
-        # Calculate Jaccard (IoU) for this specific frame
-        if metric == "jaccard":
-            score = jaccard_score(true_mask, pred_mask, zero_division=1)
-            if score == 0.0:
-                continue
-        elif metric == "precision":
-            score = precision_score(true_mask, pred_mask)
-            if score == 0.0:
-                continue
-        elif metric == "recall":
-            score = recall_score(true_mask, pred_mask)
-        else:
-            print(f'illegal metric given {metric}!')
-            exit(1)
-        scores.append((i, score))
-    
-    # Sort by score ascending (lowest first)
-    worst_indices = sorted(scores, key=lambda x: x[1])[:n]
-    
-    # create new folder within the Prediction folder
-    folder = os.path.join(output_folder, "worst_predictions",f'{metric}')
-    if not os.path.exists(folder):
-        os.mkdir(folder)
-    # print(f"Top {n} Worst Predictions (by Jaccard Score):")
-    # for idx, score in worst_indices:
-    #     print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
+        for i in range(len(y_true_all)):
+            # Binarize prediction (using 0.5 threshold)
+            pred_mask = y_pred_all[i].flatten()
+            true_mask = y_true_all[i].flatten()
+            
+            # Calculate Jaccard (IoU) for this specific frame
+            if metric == "jaccard":
+                score = jaccard_score(true_mask, pred_mask, zero_division=1)
+                if score == 0.0:
+                    continue
+            elif metric == "precision":
+                score = precision_score(true_mask, pred_mask)
+                if score == 0.0:
+                    continue
+            elif metric == "recall":
+                score = recall_score(true_mask, pred_mask)
+            else:
+                print(f'illegal metric given {metric}!')
+                exit(1)
+            if score < 1: # ignore "perfect" scores since they not necessarily reflect how good the model really is (precision can be 1 even though we missed some clouds) 
+                scores.append((i, score))
         
-    # 2. Plotting
-    for i, (idx, score) in enumerate(worst_indices):
-        # Image
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-        orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
-        axes[0].imshow(orig_image, cmap="gray")
-        axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
-        axes[0].axis('off')
+        # Sort by score ascending (lowest first)
+        sorted_scores = sorted(scores, key=lambda x: x[1])
+        
+        # create new folder within the Prediction folder
+        best_folder = os.path.join(output_folder, "best_predictions",f'{metric}')
+        worst_folder = os.path.join(output_folder, "worst_predictions",f'{metric}')
+        Path(best_folder).mkdir(parents=True, exist_ok=True)
+        Path(worst_folder).mkdir(parents=True, exist_ok=True)
+        # print(f"Top {n} Worst Predictions (by Jaccard Score):")
+        # for idx, score in worst_indices:
+        #     print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
+            
+        # 2. Plotting
+        # for i, (idx, score) in enumerate(worst_indices):
+        for i in range(n):
+            # Image
+            bad_idx, bad_score = sorted_scores[i]
+            good_idx, good_score = sorted_scores[-i-1]
+            
+            display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, worst_folder, bad_idx, bad_score)
+            display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, best_folder, good_idx, good_score)
+
+def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, folder, idx, score):
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+    orig_bad_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
+    axes[0].imshow(orig_bad_image, cmap="gray")
+    axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
+    axes[0].axis('off')
         
         # Ground Truth
-        axes[1].imshow(y_true_all[idx].squeeze(), cmap='gray')
-        axes[1].set_title("Ground Truth")
-        axes[1].axis('off')
+    axes[1].imshow(y_true_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
+    axes[1].set_title("Ground Truth")
+    axes[1].axis('off')
         
         # Prediction
-        axes[2].imshow(y_pred_all[idx].squeeze() > 0.5, cmap='gray')
-        axes[2].set_title(f"Prediction ({metric}: {score})")
-        axes[2].axis('off')
+    axes[2].imshow(y_pred_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
+    axes[2].set_title(f"Prediction ({metric}: {score})")
+    axes[2].axis('off')
 
-        plt.tight_layout()
-        plt.savefig(os.path.join(folder,f'pred_{i}'),dpi=200, bbox_inches='tight')
+    plt.tight_layout()
+    plt.savefig(os.path.join(folder,f'pred_{i}'),dpi=200, bbox_inches='tight')
+    plt.close()
         
     # plt.tight_layout()
     # plt.show()
