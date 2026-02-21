@@ -511,7 +511,7 @@ def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_p
                 if score == 0.0:
                     continue
             elif metric == "precision":
-                score = precision_score(true_mask, pred_mask)
+                score = precision_score(true_mask, pred_mask, zero_division=0.0)
                 if score == 0.0:
                     continue
             elif metric == "recall":

@@ -5,7 +5,7 @@ import os
 import numpy as np
 from utils import ADAMLearningRateTracker, save_history_plots
 import cloud_net_model
-from losses import jacc_coef, filtered_jaccard_loss_v1, filtered_jaccard_loss_v1_no_weights, filtered_jaccard_loss_v1_no_exp, filtered_jaccard_loss_small_m, jacc_bce_combined
+from losses import jacc_coef, jacc_bce_combined, hybrid_cloud_loss
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, CSVLogger
 # from generators import mybatch_generator_train, mybatch_generator_validation
@@ -133,23 +133,23 @@ def train(loss_fn,experiment_folder,experiment_name,new_weights_path,train_img_s
 if __name__ == "__main__":
 
     # getting input images names
-    dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut_same_polarity')
+    dataset_folder = os.path.join(GLOBAL_PATH,r'sorted_dataset_cut')
     train_img_split, train_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_TRAIN)
     val_img_split, val_msk_split = get_input_image_names(dataset_folder, gen_type=GEN_VAL)
     # Define your hyperparameter sets
-    losses = {"Jaccard_Bce_Combined_0_1":jacc_bce_combined,"Jaccard": jacc_coef}
+    losses = {"Jaccard_Bce_Combined_0_1":jacc_bce_combined,"Jaccard": jacc_coef, "Hybrid_Cloud_Loss":hybrid_cloud_loss(alpha=0.25,gamma=2, jaccard_weight=0.5)}
     if len(sys.argv) > 1:
         loss_name = sys.argv[1]
         loss_fn = losses[loss_name]
         input_preprocess_type = sys.argv[2]
     else:
         print("no loss names where given!")
-        loss_name = "Jaccard"
+        loss_name = "Hybrid_Cloud_Loss"
         loss_fn = losses[loss_name]
         input_preprocess_type = PREPROC_PER_IMAGE_NORM
 
 
-    experiment_name = f"data_cut_same_polarity_loss_{loss_name}_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch" + ("_pretrained" if TRAIN_RESUME else "_from_scratch")
+    experiment_name = f"data_cut_loss_{loss_name}_0.5_{input_preprocess_type}_{FINE_TUNE_NUM_OF_CHANNELS}_ch" + ("_pretrained" if TRAIN_RESUME else "_from_scratch")
     print(f"Start training for experiment {experiment_name}:\n")
 
     # create folder in trained_models
