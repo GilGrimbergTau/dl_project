@@ -25,6 +25,7 @@ TRAIN_RESUME = True
 GEN_TRAIN = "gen_train"
 GEN_VAL = "gen_val"
 GEN_TEST = "gen_test"
+GEN_TEST_FILTERED = "gen_test_filtered"
 
 PREPROC_PER_IMAGE_NORM = "preprocess_standardizations"
 PREPROC_MATCH_CDF = "preprocess_match_cdf"

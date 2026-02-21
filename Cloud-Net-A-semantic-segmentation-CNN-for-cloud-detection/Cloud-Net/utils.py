@@ -13,7 +13,7 @@ import raw_dataset_info  # The file containing dataset1, dataset2, etc.
 from raw_dataset_info import Dataset # The class definition
 import json
 from PIL import Image
-from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL
+from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL, GEN_TEST_FILTERED
 import cv2
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
@@ -263,8 +263,10 @@ def get_split_paths(target_dir, gen_type=GEN_TRAIN):
         split_path = Path(target_dir) / "train"
     elif gen_type == GEN_VAL:
         split_path = Path(target_dir) / "val"
-    else:
+    elif gen_type == GEN_TEST:
         split_path = Path(target_dir) / "test"
+    else:
+        split_path = Path(target_dir) / "test_filtered"
 
     images_dir = split_path / "images"
     masks_dir = split_path / "masks"
@@ -536,7 +538,7 @@ def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_p
             
         # 2. Plotting
         # for i, (idx, score) in enumerate(worst_indices):
-        for i in range(n):
+        for i in range(min(n,len(sorted_scores))):
             # Image
             bad_idx, bad_score = sorted_scores[i]
             good_idx, good_score = sorted_scores[-i-1]

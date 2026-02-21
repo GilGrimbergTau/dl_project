@@ -11,7 +11,7 @@ from utils import get_input_image_names, find_best_worst_predictions
 from skimage.transform import resize
 from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, jaccard_score
 
-from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST, PREPROC_MATCH_CDF, PREPROC_PER_IMAGE_NORM
+from global_params import BATCH_SIZE, IN_ROWS, IN_COLS, FINE_TUNE_NUM_OF_CHANNELS, NUM_OF_CLASSES, MAX_BIT, GLOBAL_PATH, GEN_TEST, GEN_TEST_FILTERED, PREPROC_MATCH_CDF, PREPROC_PER_IMAGE_NORM
 import datetime
 import cv2
 
@@ -90,17 +90,17 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
         cv2.imwrite(os.path.join(PRED_FOLDER, image_name + "_pred.tif"), pred_image)
 
 
-dataset_folder = r"/opt/DL_project/sorted_dataset_cut_same_polarity/"
+dataset_folder = r"/opt/DL_project/sorted_dataset_cut/"
 
-for experiment_name in ["data_cut_same_polarity_loss_Jaccard_Bce_Combined_0_1_preprocess_standardizations_4_ch_pretrained","data_cut_same_polarity_loss_Jaccard_preprocess_standardizations_4_ch_pretrained"]:
+for experiment_name in ["data_cut_loss_Jaccard_preprocess_standardizations_4_ch_pretrained","data_cut_loss_Jaccard_Bce_Combined_0_1_preprocess_standardizations_4_ch_pretrained"]:
     # experiment_name = "Cloud-Net_trained_on_38-Cloud_training_patches"
-    PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions')
+    PRED_FOLDER = os.path.join(GLOBAL_PATH,'trained_models',experiment_name,'Predictions_filtered')
     weights_path = os.path.join(GLOBAL_PATH,'trained_models',experiment_name, experiment_name + '.h5')
 
 
     # getting input images names
     # test_patches_csv_name = 'test_patches_38-cloud.csv'
     # df_test_img = pd.read_csv(os.path.join(TEST_FOLDER, test_patches_csv_name))
-    test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST)
+    test_imgs, test_masks = get_input_image_names(dataset_folder, gen_type=GEN_TEST_FILTERED)
 
     prediction(preprocess=PREPROC_PER_IMAGE_NORM)
