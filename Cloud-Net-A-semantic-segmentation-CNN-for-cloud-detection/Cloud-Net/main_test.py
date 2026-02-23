@@ -57,11 +57,10 @@ def prediction(preprocess = PREPROC_MATCH_CDF):
     # Convert lists to numpy arrays for easier handling
     y_true = get_masks(test_masks, BATCH_SIZE, IN_ROWS, IN_COLS)
 
-    y_pred = (predicted_masks > 0.5).astype(np.float32)
-
     # Find worst predictions
-    find_best_worst_predictions(y_true,y_pred,test_imgs,test_masks,PRED_FOLDER,metrics=["precision","jaccard"],n=50)
+    find_best_worst_predictions(y_true,predicted_masks,test_imgs,test_masks,PRED_FOLDER,metrics=["precision","jaccard"],n=50)
     
+    y_pred = (predicted_masks > 0.5).astype(np.float32)
     # Flatten the arrays to compute pixel-wise metrics
     y_true_flat = y_true.flatten()
     y_pred_flat = y_pred.flatten()

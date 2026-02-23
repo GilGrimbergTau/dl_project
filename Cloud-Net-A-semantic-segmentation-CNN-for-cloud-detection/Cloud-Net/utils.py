@@ -499,12 +499,13 @@ def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_p
     y_true_all: (N, H, W, 1) ground truth masks
     y_pred_all: (N, H, W, 1) model probability outputs
     """
+    y_pred_binary_all = (y_pred_all > 0.5).astype(np.float32)
     for metric in metrics:
         scores = []
         
         for i in range(len(y_true_all)):
             # Binarize prediction (using 0.5 threshold)
-            pred_mask = y_pred_all[i].flatten()
+            pred_mask = y_pred_binary_all[i].flatten()
             true_mask = y_true_all[i].flatten()
             
             # Calculate Jaccard (IoU) for this specific frame
@@ -532,19 +533,43 @@ def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_p
         worst_folder = os.path.join(output_folder, "worst_predictions",f'{metric}')
         Path(best_folder).mkdir(parents=True, exist_ok=True)
         Path(worst_folder).mkdir(parents=True, exist_ok=True)
-        # print(f"Top {n} Worst Predictions (by Jaccard Score):")
-        # for idx, score in worst_indices:
-        #     print(f"Index: {idx:4d} | Jaccard Score: {score:.4f}")
-            
+        
+        # Initialize histogram bins (10 bins between 0 and 1)
+        global_counts_good = np.zeros(10)
+        global_counts_bad = np.zeros(10)
+        bin_edges = np.linspace(0, 1, 11)
+        
         # 2. Plotting
-        # for i, (idx, score) in enumerate(worst_indices):
         for i in range(min(n,len(sorted_scores))):
             # Image
             bad_idx, bad_score = sorted_scores[i]
             good_idx, good_score = sorted_scores[-i-1]
             
-            display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, worst_folder, bad_idx, bad_score)
-            display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, best_folder, good_idx, good_score)
+            display_best_worst_predictions(y_true_all, y_pred_binary_all, orig_images_paths, metric, i, worst_folder, bad_idx, bad_score)
+            display_best_worst_predictions(y_true_all, y_pred_binary_all, orig_images_paths, metric, i, best_folder, good_idx, good_score)
+            # create Heatmap
+            create_heatmap(y_pred_all, bad_idx,i,orig_images_paths,worst_folder)
+            create_heatmap(y_pred_all, good_idx,i,orig_images_paths,best_folder)
+            # compute comulative histogram
+            counts, _ = np.histogram(y_pred_all[bad_idx], bins=bin_edges)
+            global_counts_bad += counts
+
+            counts, _ = np.histogram(y_pred_all[good_idx], bins=bin_edges)
+            global_counts_good += counts
+        
+        # Plot and Save Global Histogram
+        plot_global_histogram(bin_edges, global_counts_bad, worst_folder)
+        plot_global_histogram(bin_edges, global_counts_good, best_folder)
+
+def plot_global_histogram(bin_edges, global_counts, out_path):
+    plt.figure(figsize=(10, 6))
+    plt.bar(bin_edges[:-1], global_counts, width=1/100, color='skyblue', edgecolor='black')
+    plt.title("Global Prediction Probability Distribution")
+    plt.xlabel("Sigmoid Output (Probability)")
+    plt.ylabel("Pixel Count")
+    plt.yscale('log') # Log scale helps see the small counts in the middle
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.savefig(os.path.join(out_path,"global_histogram.png"))
 
 def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, folder, idx, score):
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
@@ -554,12 +579,12 @@ def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, me
     axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
     axes[0].axis('off')
         
-        # Ground Truth
+    # Ground Truth
     axes[1].imshow(y_true_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
     axes[1].set_title("Ground Truth")
     axes[1].axis('off')
         
-        # Prediction
+    # Prediction
     axes[2].imshow(y_pred_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
     axes[2].set_title(f"Prediction ({metric}: {score})")
     axes[2].axis('off')
@@ -570,6 +595,25 @@ def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, me
         
     # plt.tight_layout()
     # plt.show()
+def create_heatmap(y_pred_all, idx, i,orig_images_paths, output_path):
+    #Create and Save Heatmap
+    # We use matplotlib to apply the colormap without showing the plot
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    
+    orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
+    axes[0].imshow(orig_image, cmap="gray")
+    axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
+    axes[0].axis('off')
+
+    im = axes[1].imshow(y_pred_all[idx].squeeze(), cmap='magma', vmin=0, vmax=1)
+    axes[1].set_title(f"Heatmap")
+    axes[1].axis('off')
+    # Add Colorbar to the right side
+    fig.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_path,f'pred_{i}_Heatmap'),dpi=200, bbox_inches='tight')
+    plt.close()
 #####################################
 
 def save_history_plots(history, output_path):
