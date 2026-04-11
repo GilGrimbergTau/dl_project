@@ -13,8 +13,9 @@ import raw_dataset_info  # The file containing dataset1, dataset2, etc.
 from raw_dataset_info import Dataset # The class definition
 import json
 from PIL import Image
-from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL, GEN_TEST_FILTERED
+from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL, GEN_TEST_FILTERED, IN_COLS, IN_ROWS
 import cv2
+from skimage.transform import resize
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
     """It prints out the last used learning rate after each epoch (useful for resuming a training)
@@ -575,8 +576,9 @@ def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, me
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
         
     orig_bad_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
-    axes[0].imshow(orig_bad_image, cmap="gray")
-    axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
+    resized_image = resize(orig_bad_image, (IN_ROWS, IN_COLS), preserve_range=True, mode='symmetric')
+    axes[0].imshow(resized_image, cmap="gray")
+    axes[0].set_title(f"Index: {os.path.basename(orig_images_paths[idx]).split('_')[0]}")
     axes[0].axis('off')
         
     # Ground Truth
