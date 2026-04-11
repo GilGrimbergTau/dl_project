@@ -1,8 +1,9 @@
 import keras
 import keras.backend as K
+from sklearn.metrics import jaccard_score, precision_score, recall_score
 from tqdm import tqdm
 import os
-
+import matplotlib.pyplot as plt
 import shutil
 import re
 from pathlib import Path
@@ -10,6 +11,11 @@ import numpy as np
 import inspect
 import raw_dataset_info  # The file containing dataset1, dataset2, etc.
 from raw_dataset_info import Dataset # The class definition
+import json
+from PIL import Image
+from global_params import GEN_TEST,GEN_TRAIN,GEN_VAL, GEN_TEST_FILTERED, IN_COLS, IN_ROWS
+import cv2
+from skimage.transform import resize
 
 class ADAMLearningRateTracker(keras.callbacks.Callback):
     """It prints out the last used learning rate after each epoch (useful for resuming a training)
@@ -33,6 +39,68 @@ class ADAMLearningRateTracker(keras.callbacks.Callback):
             self.model.stop_training = True
 
 ################### arranging the Dataset ###################
+
+def cut_dataset_to_patches(input_base_dir, output_base_dir):
+    # Constants
+    TARGET_W, TARGET_H = 1024, 768
+    PATCH_W, PATCH_H = 384, 288
+    
+    # Calculate centering offsets
+    start_x = (TARGET_W - (PATCH_W * 2)) // 2  # 128
+    start_y = (TARGET_H - (PATCH_H * 2)) // 2  # 96
+
+    input_root = Path(input_base_dir).resolve()
+    output_root = Path(output_base_dir).resolve()
+
+     # retrieve all the frames with a numeric name (e.g 3452.tif etc.)
+    numeric_pattern = re.compile(r'^\d+\.tif$')
+    image_files = [f for f in Path(input_base_dir).rglob("*.tif") if numeric_pattern.match(f.name) and "demo" not in f.parts]
+    for img_path in image_files:
+        mask_path = img_path.parent / "no_land_no_water.tif"
+        if not os.path.exists(mask_path):
+            mask_path = img_path.parent / "no_water_no_land.tif"
+        try:
+            img = Image.open(img_path)
+            mask = Image.open(mask_path)
+            # 2. MIRROR LOGIC:
+            # Get the path of the folder containing the image, relative to input_base_dir
+            relative_folder = img_path.parent.relative_to(input_root)
+            # 3. Patching
+            img_base_name = img_path.stem 
+            mask_base_name = mask_path.stem 
+            # 1. Shape check
+            if img.size != (TARGET_W, TARGET_H) or mask.size != (TARGET_W, TARGET_H):
+                print(f'image or mask sizes do not correspond to the expected size: expected: {TARGET_W, TARGET_H} and got : {img.size} and {mask.size}')
+                save_dir = output_root / Path(str(relative_folder))
+                # Create the folders if they don't exist
+                save_dir.mkdir(parents=True, exist_ok=True)
+                # Saving to the mirrored directory
+                img_patch_name = f"{img_base_name}.tif"
+                mask_patch_name = f"{mask_base_name}.tif"
+                img.save(save_dir / img_patch_name)
+                mask.save(save_dir / mask_patch_name)
+                continue
+
+            for row in range(2):
+                for col in range(2):
+                    left = start_x + (col * PATCH_W)
+                    top = start_y + (row * PATCH_H)
+                    
+                    img_patch = img.crop((left, top, left + PATCH_W, top + PATCH_H))
+                    mask_patch = mask.crop((left, top, left + PATCH_W, top + PATCH_H))
+                    
+                    # Combine that with the output_base_dir to recreate the tree
+                    save_dir = output_root / Path(str(relative_folder) + f"_{row*2 + col}")
+                    # Create the folders if they don't exist
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    # Saving to the mirrored directory
+                    img_patch_name = f"{img_base_name}_{row*2 + col}.tif"
+                    mask_patch_name = f"{mask_base_name}_{row*2 + col}.tif"
+                    img_patch.save(save_dir / img_patch_name)
+                    mask_patch.save(save_dir / mask_patch_name)
+
+        except Exception as e:
+            print(f"Skipping {img_path.name}: {e}")
 
 def remove_folders_by_text_file(file_path):
     # 1. Check if the txt file exists
@@ -113,10 +181,6 @@ def get_excluded_subfolders(base_root_folder, datasets_list):
             ex_f.write(f'{folder}\n')
     return list(excluded_folders)
 
-
-import json
-from PIL import Image
-
 def generate_dataset_stats(base_root_folder, datasets_list, output_file='dataset_cloud_stats.json'):
     # 1. Initialize the results structure
     stats = {}
@@ -184,7 +248,7 @@ def generate_dataset_stats(base_root_folder, datasets_list, output_file='dataset
     print(f"Statistics successfully saved to {output_file}")
     return stats
 
-def get_split_paths(target_dir, if_train):
+def get_split_paths(target_dir, gen_type=GEN_TRAIN):
     """
     Retrieves sorted lists of file paths for images and masks from a specific split.
 
@@ -196,13 +260,21 @@ def get_split_paths(target_dir, if_train):
         tuple: (image_paths, mask_paths) where each is a list of Path objects.
     """
     # Define the paths to the specific split folders
-    split_path = Path(target_dir) / "train" if if_train else Path(target_dir) / "test"
+    if gen_type == GEN_TRAIN:
+        split_path = Path(target_dir) / "train"
+    elif gen_type == GEN_VAL:
+        split_path = Path(target_dir) / "val"
+    elif gen_type == GEN_TEST:
+        split_path = Path(target_dir) / "test"
+    else:
+        split_path = Path(target_dir) / "test_filtered"
+
     images_dir = split_path / "images"
     masks_dir = split_path / "masks"
 
     # Check if directories exist to avoid errors
     if not images_dir.exists() or not masks_dir.exists():
-        print(f"Error: {if_train} directory structure not found in {target_dir}")
+        print(f"Error: {gen_type} directory structure not found in {target_dir}")
         return [], []
 
     # Get all .tif files and sort them to ensure matching indices
@@ -211,21 +283,21 @@ def get_split_paths(target_dir, if_train):
 
     # Simple validation to ensure parity
     if len(image_paths) != len(mask_paths):
-        print(f"Warning: Mismatch in {if_train} set! "
+        print(f"Warning: Mismatch in {gen_type} set! "
               f"Images: {len(image_paths)}, Masks: {len(mask_paths)}")
         return [], []
 
     return image_paths, mask_paths
 
-def get_input_image_names(data_folder_path, if_train=True):
+def get_input_image_names(data_folder_path, gen_type=GEN_TRAIN):
 
-    list_img, list_msk =  get_split_paths(data_folder_path, if_train)
+    list_img, list_msk =  get_split_paths(data_folder_path, gen_type)
     return list_img, list_msk
     
     # return list_img, list_test_ids
 
 
-def sort_dataset(source_dir, target_dir, test_list_file):
+def sort_dataset(source_dir, target_dir, test_list_file, val_list_file):
     """
     Recursively traverses a source directory to identify pairs of numeric image files and their 
     corresponding masks. It splits these pairs into "train" and "test" sets based on a provided text 
@@ -239,102 +311,350 @@ def sort_dataset(source_dir, target_dir, test_list_file):
     source_path = Path(source_dir)
     target_path = Path(target_dir)
     
-    # Read the test list
-    with open(test_list_file, 'r') as f:
-        test_folders = {line.strip() for line in f if line.strip()}
+    # Helper to read lists safely
+    def read_list(file_path):
+        with open(file_path, 'r') as f:
+            return [line.strip() for line in f if (not line.startswith("#") and line.strip())]
 
-    # Create target directory structure
-    for split in ['train', 'test']:
+    # Read the split lists
+    test_folders = read_list(test_list_file)
+    val_folders = read_list(val_list_file)
+
+    # Create target directory structure for all three splits
+    for split in ['train', 'test', 'val']:
         for folder in ['images', 'masks']:
             (target_path / split / folder).mkdir(parents=True, exist_ok=True)
 
     # Find and sort all numeric .tif files
-    numeric_pattern = re.compile(r'^\d+\.tif$')
-    image_files = [f for f in source_path.rglob("*.tif") if numeric_pattern.match(f.name)]
-    image_files.sort() # Ensure consistent indexing order
+    mask_files = [f for f in source_path.rglob("*.tif") if f.name.__contains__("no_land")]
+    mask_files.sort() # Ensure consistent indexing order
     
-    print(f"Found {len(image_files)} potential images. Processing...")
+    print(f"Found {len(mask_files)} potential images. Processing...")
 
     # Manual counter to ensure continuous indexing for successful pairs
     current_index = 0
 
-    for file_path in image_files:
+    for mask_path in mask_files:
         # Ignore any file if "demo" is in its folder path
-        if "demo" in file_path.parts:
+        if "demo" in mask_path.parts:
             continue
         # Determine split: test if any parent folder is in the test_folders list
-        is_test = any(part in test_folders for part in file_path.parts)
-        split = 'test' if is_test else 'train'
-        
-        # Look for the mask in the SAME folder as the image
-        mask_path = file_path.parent / "no_land_no_water.tif"
+        # Check if any parent folder is in test list, then check validation list, else train
+        if any(part in test_folders for part in mask_path.parts):
+            split = 'test'
+        elif any(part in val_folders for part in mask_path.parts):
+            split = 'val'
+        else:
+            split = 'train'
         
         if mask_path.exists():
             # Get the folder name TWO levels upstream
             try:
-                upstream_folder = file_path.parents[1].name
+                upstream_folder = mask_path.parent
+                yaaf_name = mask_path.parents[1].name
             except IndexError:
-                upstream_folder = "unknown"
+                yaaf_name = "unknown"
 
+            for file in upstream_folder.iterdir():
+                if not "no_land" in str(file):
+                    image_path = file
+                    break
             # Construct filenames using the manual counter
-            new_filename = f"{current_index:06d}_{upstream_folder}.tif"
+            new_filename = f"{current_index:06d}_{yaaf_name}.tif"
 
             # Define destinations
             dest_img = target_path / split / 'images' / new_filename
             dest_mask = target_path / split / 'masks' / new_filename
 
             # Copy files
-            shutil.copy2(file_path, dest_img)
+            shutil.copy2(image_path, dest_img)
             shutil.copy2(mask_path, dest_mask)
             
             # ONLY increment index if copy was successful
             current_index += 1
         else:
             # If mask is missing, we skip this image and the index does NOT increase
-            print(f"Skipping: Mask missing for {file_path}")
+            print(f"Skipping: Mask missing for {mask_path}")
 
     print(f"Process complete. Total paired files copied: {current_index}")
 
 
+def normalize_dataset_polarity(root_path, scenario_txt, output_path):
+    # 1. Parse the scenario text file
+    with open(scenario_txt, 'r') as f:
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+    
+    black_hot_list = []
+    current_section = None
+    for line in lines:
+        if line.lower() == "#white-hot":
+            current_section = "white"
+        elif line.lower() == "#black-hot":
+            current_section = "black"
+        elif current_section == "black":
+            black_hot_list.append(line)
 
-def get_cloud38_cdf(folder_path="/opt/DL_project/cloud38_dataset/", cdf_filename="cloud38_test_cdf_normalized"):
-    cdf_path = os.path.join(folder_path, cdf_filename + ".npy")
-    if os.path.isfile(cdf_path):
-        cdf_normalized = np.load(cdf_path)
-        return cdf_normalized
-    else:
-        print(f'cdf_path does not exist: {cdf_path}')
-        exit(1)
+    print(f"Loaded {len(black_hot_list)} Black-Hot scenarios.")
+
+    modified_images = []
+    root = Path(root_path)
+    output_root = Path(output_path)
+
+    # 2. Walk through the directory tree
+    # We only care about 'images' folders; masks usually don't need polarity flips
+    for subdir in ['train', 'val', 'test']:
+        img_dir = root / subdir / 'images'
+        mask_dir = root / subdir / 'masks'
+        
+        # Define output paths
+        out_img_dir = output_root / subdir / 'images'
+        out_mask_dir = output_root / subdir / 'masks'
+        
+        # Ensure output directories exist
+        out_img_dir.mkdir(parents=True, exist_ok=True)
+        out_mask_dir.mkdir(parents=True, exist_ok=True)
+
+        if not img_dir.exists():
+            continue
+
+        for img_file in img_dir.glob('*.tif'):
+            # Check if image name contains any black-hot scenario keywords
+            is_black_hot = any(scenario in img_file.name for scenario in black_hot_list)
+            
+            if is_black_hot:
+                # 16-bit inversion
+                 # Load the image
+                img_data = cv2.imread(str(img_file),cv2.IMREAD_UNCHANGED)
+                img_data = np.max(img_data) + np.min(img_data) - img_data
+                modified_images.append(str(img_file.relative_to(root)))
+                cv2.imwrite(str(out_img_dir / img_file.name), img_data.astype(np.uint16))
+            else:
+                # copy image as is
+                shutil.copy(str(img_file),str(out_img_dir / img_file.name))
+            
+            # Copy masks as-is (they are just labels 0/1)
+            # You can also use shutil.copy for speed here
+            mask_file = mask_dir / img_file.name
+            if mask_file.exists():
+                shutil.copy(str(mask_file),str(out_mask_dir / img_file.name))
+            else:
+                print(f'mask path could not be found! {str(mask_file)}')
+
+    # 3. Save the log of modified images
+    with open(output_root / 'modified_images_log.txt', 'w') as log_file:
+        log_file.write("\n".join(modified_images))
+    
+    print(f"Processing complete. {len(modified_images)} images were flipped.")
+
+def analyze_mask_folder(folder_path):
+    # Initialize counters
+    total_images = 0
+    total_zero_pixels = 0
+    total_nonzero_pixels = 0
+    
+    # Supported image extensions
+    valid_extensions = ('.tif', '.tiff', '.png', '.jpg', '.jpeg', '.bmp')
+
+    # Iterate through folder
+    files = [f for f in os.listdir(folder_path) if f.lower().endswith(valid_extensions)]
+    total_images = len(files)
+
+    if total_images == 0:
+        print(f"No valid mask files found in {folder_path}")
+        return
+
+    for filename in files:
+        file_path = os.path.join(folder_path, filename)
+        
+        # Load image (IMREAD_UNCHANGED is crucial for 16-bit or special masks)
+        mask = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+        
+        if mask is None:
+            continue
+
+        # Count pixels
+        # np.count_nonzero is very fast
+        nonzero_count = np.count_nonzero(mask)
+        zero_count = mask.size - nonzero_count
+        
+        total_nonzero_pixels += nonzero_count
+        total_zero_pixels += zero_count
+
+    # Calculate percentages
+    total_pixels = total_zero_pixels + total_nonzero_pixels
+    percent_zero = (total_zero_pixels / total_pixels) * 100 if total_pixels > 0 else 0
+    percent_nonzero = (total_nonzero_pixels / total_pixels) * 100 if total_pixels > 0 else 0
+
+    # Print Results
+    print(f"--- Analysis Results for: {folder_path} ---")
+    print(f"Total number of masks:      {total_images}")
+    print(f"Total pixels processed:      {total_pixels:,}")
+    print("-" * 40)
+    print(f"Pixels with value 0:         {total_zero_pixels:,} ({percent_zero:.2f}%)")
+    print(f"Pixels with value > 0:       {total_nonzero_pixels:,} ({percent_nonzero:.2f}%)")
+    print("-" * 40)
+
+
+def find_best_worst_predictions(y_true_all, y_pred_all,orig_images_paths, mask_paths, output_folder, metrics=["jaccard"], n=10):
+    """
+    y_true_all: (N, H, W, 1) ground truth masks
+    y_pred_all: (N, H, W, 1) model probability outputs
+    """
+    y_pred_binary_all = (y_pred_all > 0.5).astype(np.float32)
+    for metric in metrics:
+        scores = []
+        
+        for i in range(len(y_true_all)):
+            # Binarize prediction (using 0.5 threshold)
+            pred_mask = y_pred_binary_all[i].flatten()
+            true_mask = y_true_all[i].flatten()
+            
+            # Calculate Jaccard (IoU) for this specific frame
+            if metric == "jaccard":
+                score = jaccard_score(true_mask, pred_mask, zero_division=1)
+                if score == 0.0:
+                    continue
+            elif metric == "precision":
+                score = precision_score(true_mask, pred_mask, zero_division=0.0)
+                if score == 0.0:
+                    continue
+            elif metric == "recall":
+                score = recall_score(true_mask, pred_mask)
+            else:
+                print(f'illegal metric given {metric}!')
+                exit(1)
+            if score < 1: # ignore "perfect" scores since they not necessarily reflect how good the model really is (precision can be 1 even though we missed some clouds) 
+                scores.append((i, score))
+        
+        # Sort by score ascending (lowest first)
+        sorted_scores = sorted(scores, key=lambda x: x[1])
+        
+        # create new folder within the Prediction folder
+        best_folder = os.path.join(output_folder, "best_predictions",f'{metric}')
+        worst_folder = os.path.join(output_folder, "worst_predictions",f'{metric}')
+        Path(best_folder).mkdir(parents=True, exist_ok=True)
+        Path(worst_folder).mkdir(parents=True, exist_ok=True)
+        
+        # Initialize histogram bins (10 bins between 0 and 1)
+        global_counts_good = np.zeros(10)
+        global_counts_bad = np.zeros(10)
+        bin_edges = np.linspace(0, 1, 11)
+        
+        # 2. Plotting
+        for i in range(min(n,len(sorted_scores))):
+            # Image
+            bad_idx, bad_score = sorted_scores[i]
+            good_idx, good_score = sorted_scores[-i-1]
+            
+            display_best_worst_predictions(y_true_all, y_pred_binary_all, orig_images_paths, metric, i, worst_folder, bad_idx, bad_score)
+            display_best_worst_predictions(y_true_all, y_pred_binary_all, orig_images_paths, metric, i, best_folder, good_idx, good_score)
+            # create Heatmap
+            create_heatmap(y_pred_all, bad_idx,i,orig_images_paths,worst_folder)
+            create_heatmap(y_pred_all, good_idx,i,orig_images_paths,best_folder)
+            # compute comulative histogram
+            counts, _ = np.histogram(y_pred_all[bad_idx], bins=bin_edges)
+            global_counts_bad += counts
+
+            counts, _ = np.histogram(y_pred_all[good_idx], bins=bin_edges)
+            global_counts_good += counts
+        
+        # Plot and Save Global Histogram
+        plot_global_histogram(bin_edges, global_counts_bad, worst_folder)
+        plot_global_histogram(bin_edges, global_counts_good, best_folder)
+
+def plot_global_histogram(bin_edges, global_counts, out_path):
+    plt.figure(figsize=(10, 6))
+    plt.bar(bin_edges[:-1], global_counts, width=1/100, color='skyblue', edgecolor='black')
+    plt.title("Global Prediction Probability Distribution")
+    plt.xlabel("Sigmoid Output (Probability)")
+    plt.ylabel("Pixel Count")
+    plt.yscale('log') # Log scale helps see the small counts in the middle
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.savefig(os.path.join(out_path,"global_histogram.png"))
+
+def display_best_worst_predictions(y_true_all, y_pred_all, orig_images_paths, metric, i, folder, idx, score):
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+    orig_bad_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
+    resized_image = resize(orig_bad_image, (IN_ROWS, IN_COLS), preserve_range=True, mode='symmetric')
+    axes[0].imshow(resized_image, cmap="gray")
+    axes[0].set_title(f"Index: {os.path.basename(orig_images_paths[idx]).split('_')[0]}")
+    axes[0].axis('off')
+        
+    # Ground Truth
+    axes[1].imshow(y_true_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
+    axes[1].set_title("Ground Truth")
+    axes[1].axis('off')
+        
+    # Prediction
+    axes[2].imshow(y_pred_all[idx].squeeze(), cmap='gray', vmin=0, vmax=1)
+    axes[2].set_title(f"Prediction ({metric}: {score})")
+    axes[2].axis('off')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(folder,f'pred_{i}'),dpi=200, bbox_inches='tight')
+    plt.close()
+        
+    # plt.tight_layout()
+    # plt.show()
+def create_heatmap(y_pred_all, idx, i,orig_images_paths, output_path):
+    #Create and Save Heatmap
+    # We use matplotlib to apply the colormap without showing the plot
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    
+    orig_image = cv2.imread(orig_images_paths[idx],cv2.IMREAD_UNCHANGED)
+    axes[0].imshow(orig_image, cmap="gray")
+    axes[0].set_title(f"Index: {idx}\nFile: {str(orig_images_paths[idx]).split('/')[-1]}")
+    axes[0].axis('off')
+
+    im = axes[1].imshow(y_pred_all[idx].squeeze(), cmap='magma', vmin=0, vmax=1)
+    axes[1].set_title(f"Heatmap")
+    axes[1].axis('off')
+    # Add Colorbar to the right side
+    fig.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_path,f'pred_{i}_Heatmap'),dpi=200, bbox_inches='tight')
+    plt.close()
+#####################################
+
+def save_history_plots(history, output_path):
+    # 1. Identify unique metrics (removing the 'val_' prefix)
+    # This gives us ['loss', 'accuracy', 'recall', 'precision', ...]
+    metrics = [key for key in history.history.keys() if not key.startswith('val_')]
  
-def match_to_cdf(source_img, reference_cdf):
-    # 1. Calculate source histogram and normalized CDF
-    # We use 65536 bins for 16-bit depth
-    src_values, src_unique_indices, src_counts = np.unique(source_img.ravel(),
-                                                         return_inverse=True,
-                                                         return_counts=True)
-    src_cdf = np.cumsum(src_counts).astype(np.float64)
-    src_cdf /= src_cdf[-1]  # <--- Normalized to 1.0
-   
-    # 2. Reference X-axis (all possible 16-bit values)
-    ref_values = np.arange(len(reference_cdf))
-   
-    # 3. Map!
-    # We look up where the src_cdf values would fall on the reference_cdf
-    # reference_cdf must also be normalized (0.0 to 1.0)
-    matched_values = np.interp(src_cdf, reference_cdf, ref_values)
-   
-    # 4. Reconstruct the image
-    return matched_values[src_unique_indices].reshape(source_img.shape).astype(np.uint16)
+    for metric in metrics:
+        plt.figure(figsize=(8, 5))
+        # Plot training metric
+        plt.plot(history.history[metric], label=f'Train {metric.capitalize()}')
+        # Plot validation metric if it exists
+        val_key = f'val_{metric}'
+        if val_key in history.history:
+            plt.plot(history.history[val_key], label=f'Val {metric.capitalize()}')
+        plt.title(f'Model {metric.capitalize()} over Epochs')
+        plt.xlabel('Epochs')
+        plt.ylabel(metric.capitalize())
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        # Save as an image file (e.g., "metric_recall.png")
+        filename = os.path.join(output_path,f"metric_{metric}.png")
+        plt.savefig(filename)
+        plt.close() # Important: close the figure to free up memory
+        print(f"Saved: {filename}")
 
+if __name__ == "__main__":
 
+    # # Get all members of the module
+    members = inspect.getmembers(raw_dataset_info)
 
-# # Get all members of the module
-members = inspect.getmembers(raw_dataset_info)
+    # Filter for objects that are instances of Dataset
+    dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
 
-# Filter for objects that are instances of Dataset
-dataset_list = [obj for name, obj in members if isinstance(obj, Dataset)]
+    # print(f"Found {len(dataset_list)} datasets.")
 
-# print(f"Found {len(dataset_list)} datasets.")
+    # get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
+    # generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
+    # sort_dataset(r"/opt/DL_project/cut_dataset/",r"/opt/DL_project/sorted_dataset_cut/",r"/opt/DL_project/cut_dataset/test_yaafs_list.txt",r"/opt/DL_project/cut_dataset/val_yaafs_list.txt")
+    # analyze_mask_folder(r'/opt/DL_project/sorted_dataset_cut/val/masks/')
 
-# get_excluded_subfolders(r'/opt/DL_project/raw_dataset/',dataset_list)
-generate_dataset_stats(r'/opt/DL_project/raw_dataset/', dataset_list, output_file=r'/opt/DL_project/raw_dataset/dataset_cloud_stats.json')
+    # normalize_dataset_polarity("/opt/DL_project/sorted_dataset_cut/","/opt/DL_project/sensors_list.txt","/opt/DL_project/sorted_dataset_cut_same_polarity/")

@@ -566,9 +566,9 @@ jack_SqrCnt_00067 = Dataset(name='jack_SqrCnt_00067',
                              background_frame_ranges_list=[
                              ],
                              clouds_frame_ranges_list=[
-                                 (10904, 11004)
                              ],
                              excluded_frame_ranges_list=[
+                                 (10904, 11004)
                              ],
                              clouds_stat={"mean": 6266.576407877604, "std": 114.29705553087021})
 

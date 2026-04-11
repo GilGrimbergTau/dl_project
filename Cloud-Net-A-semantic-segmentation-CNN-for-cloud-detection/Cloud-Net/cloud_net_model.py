@@ -3,7 +3,7 @@ from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspo
     Activation, Dropout
 import keras
 
-from global_params import NUM_OF_CLASSES, NUM_OF_CHANNELS, IN_ROWS, IN_COLS
+from global_params import NUM_OF_CLASSES, PRETRAINED_NUM_OF_CHANNELS, IN_ROWS, IN_COLS
 
 """
 Some parts borrowed from https://www.kaggle.com/cjansen/u-net-in-keras
@@ -225,7 +225,7 @@ def improve_ff_block1(input_tensor1, pure_ff):
     return x
 
 
-def model_arch(input_rows=IN_ROWS, input_cols=IN_COLS, num_of_channels=NUM_OF_CHANNELS, num_of_classes=NUM_OF_CLASSES):
+def model_arch(input_rows=IN_ROWS, input_cols=IN_COLS, num_of_channels=PRETRAINED_NUM_OF_CHANNELS, num_of_classes=NUM_OF_CLASSES):
     inputs = Input((input_rows, input_cols, num_of_channels))
     conv1 = Conv2D(16, (3, 3), activation='relu', padding='same')(inputs)
 
